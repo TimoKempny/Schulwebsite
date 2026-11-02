@@ -54,6 +54,18 @@
 
   function istExtern(url) { return /^https?:\/\//i.test(url); }
 
+  // "neu" gilt 14 Tage ab dem Hochladedatum (neu: "JJJJ-MM-TT")
+  var NEU_TAGE = 14;
+  function istNeu(eintrag) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(eintrag.neu || "");
+    if (!m) return false;
+    var seit = new Date(+m[1], +m[2] - 1, +m[3]);
+    var heute = new Date();
+    heute.setHours(0, 0, 0, 0);
+    var tage = Math.round((heute - seit) / 86400000);
+    return tage >= 0 && tage < NEU_TAGE;
+  }
+
   // fach ist eine Liste; ein einzelner Text geht aber auch
   function faecher(eintrag) {
     if (!eintrag.fach) return [];
@@ -77,7 +89,7 @@
 
     var top = el("div", "card-top");
     top.appendChild(el("span", "card-fach", faecher(eintrag).join(", ")));
-    if (eintrag.neu) top.appendChild(el("span", "badge-neu", "neu"));
+    if (istNeu(eintrag)) top.appendChild(el("span", "badge-neu", "neu"));
     a.appendChild(top);
 
     var h3 = el("h3", istExtern(eintrag.url || "") ? "card-extern" : "", eintrag.titel);

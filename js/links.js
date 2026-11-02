@@ -10,7 +10,9 @@
      beschreibung kurzer Satz                           (optional)
      fach         Liste, z. B. ["Informatik"] oder ["ITS", "Kom1"]  (optional)
      klassen      Liste, z. B. ["2BKI1", "E1FI"]        (optional)
-     neu          true = "neu"-Markierung               (optional)
+     neu          Hochladedatum "JJJJ-MM-TT", z. B. "2026-11-02"   (optional)
+                  → die Kachel ist ab diesem Tag 14 Tage lang als "neu" markiert,
+                    danach verschwindet die Markierung von selbst.
 
    Hinweis: Nach jedem Eintrag ein Komma.
    ========================================================== */
@@ -38,7 +40,7 @@ const EINTRAEGE = [
     beschreibung: "Flussdiagramme, UML, ER-Modelle, Gantt und C4 als Text schreiben und live ansehen – Export als SVG und PNG",
     url: "mermaid-editor.html",
     fach: ["Informatik"],
-    neu: true
+    neu: "2026-10-23"
   },
   {
     typ: "tool",
@@ -67,7 +69,7 @@ const EINTRAEGE = [
     beschreibung: "Vom weltweiten Internet bis ins Schulnetz hineinzoomen und den Weg eines Datenpakets verfolgen",
     url: "netzkarte.html",
     fach: ["ITS", "Kom1"],
-    neu: true
+    neu: "2026-10-18"
   },
   {
     typ: "tool",
@@ -75,15 +77,15 @@ const EINTRAEGE = [
     beschreibung: "Schritt für Schritt vom Browser über Schulnetz und Internet bis zum Webserver – mit DNS, TCP, TLS und HTTP",
     url: "webseitenaufruf.html",
     fach: ["ITS", "Kom1"],
-    neu: true
+    neu: "2026-10-19"
   },
   {
     typ: "tool",
     titel: "Lostopf",
-    beschreibung: "Schülerinnen und Schüler zufällig auslosen – mit Abwesenheiten und ohne Wiederholung, die Namen bleiben im eigenen Browser",
+    beschreibung: "Schülerinnen und Schüler zufällig auslosen oder in Gruppen einteilen – mit Regeln wie „nicht zusammen“, die Namen bleiben im eigenen Browser",
     url: "lostopf.html",
     fach: ["Allgemein"],
-    neu: true
+    neu: "2026-11-02"
   },
   {
     typ: "tool",
@@ -161,7 +163,7 @@ const EINTRAEGE = [
     beschreibung: "Die wichtigste Syntax für Fluss-, Sequenz-, Klassen-, Zustands- und ER-Diagramme",
     url: "mermaid.html",
     fach: ["Informatik"],
-    neu: true
+    neu: "2026-10-23"
   },
   {
     typ: "materialien",
@@ -169,7 +171,7 @@ const EINTRAEGE = [
     beschreibung: "Die wichtigsten Python-Befehle und Funktionen mit kurzer Erklärung",
     url: "python.html",
     fach: ["SAE"],
-    neu: true
+    neu: "2026-10-21"
   },
   {
     typ: "materialien",
@@ -177,7 +179,7 @@ const EINTRAEGE = [
     beschreibung: "Die wichtigsten C-Befehle und Funktionen mit kurzer Erklärung",
     url: "c.html",
     fach: ["Prog"],
-    neu: true
+    neu: "2026-10-21"
   },
   {
     typ: "materialien",
@@ -185,6 +187,6 @@ const EINTRAEGE = [
     beschreibung: "Die wichtigsten Befehle für die Kommandozeile unter Debian Linux",
     url: "bash.html",
     fach: ["ITS"],
-    neu: true
+    neu: "2026-10-21"
   }
 ];
