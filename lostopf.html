@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Lostopf · Unterricht</title>
-  <meta name="description" content="Schülerinnen und Schüler zufällig auslosen – mit Abwesenheiten, ohne Wiederholung. Die Namen bleiben im eigenen Browser.">
+  <meta name="description" content="Schülerinnen und Schüler zufällig auslosen oder in Gruppen einteilen – mit Abwesenheiten und Regeln. Die Namen bleiben im eigenen Browser.">
   <script>
     try {
       var t = localStorage.getItem("theme");
@@ -287,6 +287,105 @@
     details.lt-backup summary:hover { color: var(--text); }
     .backup-body { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
     .backup-body p { margin: 0; color: var(--muted); font-size: .94rem; max-width: 65ch; }
+
+    /* ---------- Modus: einzeln / gruppen ---------- */
+    .modes { display: flex; gap: 6px; }
+    .modes button {
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      color: var(--chalk-dim);
+      background: none;
+      border: 1px solid var(--board-line);
+      border-radius: 999px;
+      padding: 4px 12px;
+      cursor: pointer;
+    }
+    .modes button:hover { color: var(--chalk); border-color: var(--chalk-dim); }
+    .modes button[aria-pressed="true"] { background: var(--draw); border-color: var(--draw); color: var(--on-draw); }
+    .board-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+
+    .g-mode {
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      color: var(--chalk);
+      background: var(--board);
+      border: 1px solid var(--board-line);
+      border-radius: 10px;
+      padding: 0 8px;
+      height: 44px;
+      margin-right: 6px;
+      cursor: pointer;
+    }
+
+    /* Gruppen auf der Tafel */
+    .groups {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+      gap: 12px;
+      align-content: start;
+    }
+    .group {
+      border: 1px solid var(--board-line);
+      border-radius: 10px;
+      padding: 10px 14px 12px;
+      min-width: 0;
+      animation: lt-pop .35s ease both;
+    }
+    .group h3 {
+      margin: 0 0 6px;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--draw);
+    }
+    .group ul { list-style: none; margin: 0; padding: 0; }
+    .group li { font-weight: 600; font-size: clamp(1rem, 1.6vw, 1.3rem); line-height: 1.3; overflow-wrap: anywhere; }
+    .board:fullscreen .groups { grid-template-columns: repeat(auto-fill, minmax(22vw, 1fr)); gap: 1.5vw; }
+    .board:fullscreen .group h3 { font-size: 1.3vw; }
+    .board:fullscreen .group li { font-size: 2.2vw; }
+    @keyframes lt-pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .group { animation: none; } }
+    .rule-warn {
+      margin: 0;
+      font-size: .9rem;
+      color: var(--chalk);
+      border-left: 3px solid #f87171;
+      padding: 4px 10px;
+    }
+
+    /* Regeln in der Seitenleiste */
+    .rules { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border); padding-top: 16px; }
+    .rules h3 { margin: 0; font-family: var(--font-mono); font-size: .95rem; font-weight: 600; }
+    .rules h3::before { content: "// "; color: var(--accent); }
+    .rule {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .rule .rtype { font-family: var(--font-mono); font-size: .72rem; font-weight: 600; white-space: nowrap; padding-top: 3px; }
+    .rule .rtype.apart { color: var(--bad); }
+    .rule .rtype.together { color: var(--accent); }
+    .rule .rtype.spread { color: var(--new); }
+    .rule .rnames { flex: 1; min-width: 0; font-size: .94rem; overflow-wrap: anywhere; }
+    .rule button {
+      flex: none;
+      background: none;
+      border: 0;
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 2px 4px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .rule button:hover { color: var(--bad); }
+    .rule-editor { display: flex; flex-direction: column; gap: 10px; }
+    .rule-editor select.inp { font-family: var(--font-sans); }
+    .kid.pick[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
   </style>
 </head>
 <body class="lt-page">
@@ -302,28 +401,43 @@
     <div class="container lt-wrap">
       <section class="board" id="board" aria-label="Auslosung">
         <div class="board-head">
-          <h1>Lostopf</h1>
+          <div class="board-title">
+            <h1>Lostopf</h1>
+            <div class="modes" role="group" aria-label="Modus">
+              <button type="button" id="mode-single" aria-pressed="true">einzeln</button>
+              <button type="button" id="mode-groups" aria-pressed="false">gruppen</button>
+            </div>
+          </div>
           <span class="board-meta" id="board-meta"></span>
         </div>
         <div class="stage" id="stage"></div>
         <div class="visually-hidden" id="live" aria-live="polite"></div>
         <div class="controls">
-          <div class="stepper" role="group" aria-label="Anzahl der Auszulosenden">
-            <span>anzahl</span>
-            <button type="button" id="minus" aria-label="Eine Person weniger">&minus;</button>
+          <div class="stepper" role="group" aria-label="Anzahl">
+            <span id="stepper-label">anzahl</span>
+            <select class="g-mode" id="g-mode" aria-label="Gruppen einteilen nach" hidden>
+              <option value="size">pro gruppe</option>
+              <option value="count">gruppen</option>
+            </select>
+            <button type="button" id="minus" aria-label="Weniger">&minus;</button>
             <output id="count" for="minus plus">1</output>
-            <button type="button" id="plus" aria-label="Eine Person mehr">+</button>
+            <button type="button" id="plus" aria-label="Mehr">+</button>
           </div>
           <button type="button" id="draw">Auslosen</button>
         </div>
         <div class="controls-sub">
-          <label for="no-repeat">
+          <label for="no-repeat" id="no-repeat-label">
             <input type="checkbox" id="no-repeat">
             Niemand doppelt, bis alle dran waren
           </label>
+          <label for="g-fresh" id="g-fresh-label" hidden>
+            <input type="checkbox" id="g-fresh">
+            Möglichst andere Gruppen als beim letzten Mal
+          </label>
           <div class="board-links">
-            <span class="kbd-hint"><kbd>Leertaste</kbd> lost aus</span>
+            <span class="kbd-hint"><kbd>Leertaste</kbd> <span id="kbd-what">lost aus</span></span>
             <button type="button" id="reset-round">Runde neu starten</button>
+            <button type="button" id="g-copy" hidden>Gruppen kopieren</button>
             <button type="button" id="fullscreen">Vollbild</button>
           </div>
         </div>
@@ -337,7 +451,7 @@
         <details class="lt-backup">
           <summary>Klassen exportieren oder importieren</summary>
           <div class="backup-body">
-            <p>Die Namen liegen nur in diesem Browser und gehen an keinen Server. Exportiere sie als Datei, um sie zu sichern, auf einen anderen Rechner mitzunehmen oder einer Kollegin oder einem Kollegen zu geben. Der Export enthält die Namen, wer heute fehlt und wer in dieser Runde schon dran war.</p>
+            <p>Die Namen liegen nur in diesem Browser und gehen an keinen Server. Exportiere sie als Datei, um sie zu sichern, auf einen anderen Rechner mitzunehmen oder einer Kollegin oder einem Kollegen zu geben. Der Export enthält die Namen, wer heute fehlt, wer in dieser Runde schon dran war, die Regeln für Gruppen und die letzte Gruppeneinteilung.</p>
             <div class="row">
               <button type="button" class="btn" id="export-all">Alle Klassen exportieren</button>
               <button type="button" class="btn btn-ghost" id="export-one">Nur diese Klasse exportieren</button>
@@ -378,7 +492,19 @@
     }
     function uid() { return "k" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36); }
     function blankClass(name, students) {
-      return { id: uid(), name: name, students: students || [], absent: [], absentDate: today(), drawn: [], last: [] };
+      return { id: uid(), name: name, students: students || [], absent: [], absentDate: today(), drawn: [], last: [], rules: [], groups: [] };
+    }
+    var RULE_TYPES = {
+      apart:    { label: "nicht zusammen", help: "Diese Personen kommen nie in dieselbe Gruppe." },
+      together: { label: "immer zusammen", help: "Diese Personen kommen immer in dieselbe Gruppe." },
+      spread:   { label: "verteilen",      help: "Diese Personen werden möglichst gleichmäßig auf die Gruppen verteilt, z. B. Stärkere, Helfer oder alle mit Laptop." }
+    };
+    /* Fehlende Felder ergänzen (ältere Speicherstände, Importe). */
+    function normalize(c) {
+      ["students", "absent", "drawn", "last", "rules", "groups"].forEach(function (k) { if (!Array.isArray(c[k])) c[k] = []; });
+      c.rules = c.rules.filter(function (r) { return r && RULE_TYPES[r.type] && Array.isArray(r.names); });
+      c.groups = c.groups.filter(Array.isArray);
+      return c;
     }
     function seed() {
       var sample = blankClass("Beispielklasse", [
@@ -389,7 +515,20 @@
       sample.absent = ["Tim Brandt"];
       sample.drawn = ["Jonas Keller", "Nele Sommer", "Mira Hoffmann"];
       sample.last = ["Mira Hoffmann"];
+      sample.rules = [
+        { type: "apart", names: ["Jonas Keller", "Leon Wagner"] },
+        { type: "spread", names: ["Elif Demir", "Sofia Rossi", "Amir Haddad", "Lea Krüger"] }
+      ];
       return { activeId: sample.id, classes: [sample], count: 1, noRepeat: true };
+    }
+    function settings(s) {
+      if (s.mode !== "groups") s.mode = "single";
+      if (s.gMode !== "count") s.gMode = "size";
+      if (!(s.gSize >= 2)) s.gSize = 4;
+      if (!(s.gCount >= 2)) s.gCount = 6;
+      if (typeof s.gFresh !== "boolean") s.gFresh = true;
+      s.classes.forEach(normalize);
+      return s;
     }
     function load() {
       try {
@@ -407,7 +546,9 @@
       $("storage-warning").hidden = storageOk;
     }
 
-    var state = load();
+    var state = settings(load());
+    var ruleDraft = null;   /* Regel, die gerade angelegt wird: { type, names } */
+    var groupWarn = [];     /* Regeln, die bei der letzten Einteilung nicht erfüllbar waren */
     var editing = false;
     var creating = false;
     var armedDelete = false;
@@ -454,6 +595,139 @@
       return { names: first, newRound: newRound };
     }
 
+    /* ---------- Gruppenbildung ---------- */
+    /* Gruppengrößen so gleichmäßig wie möglich, z. B. 26 Personen à 4 → 4,4,4,4,4,3,3 */
+    function groupSizes(n) {
+      if (n < 1) return [];
+      var g = state.gMode === "count" ? state.gCount : Math.round(n / state.gSize);
+      g = Math.max(1, Math.min(g, n));
+      var base = Math.floor(n / g), rem = n % g, sizes = [];
+      for (var i = 0; i < g; i++) sizes.push(base + (i < rem ? 1 : 0));
+      return sizes;
+    }
+    function sizeText(sizes) {
+      if (!sizes.length) return "";
+      var lo = sizes[sizes.length - 1], hi = sizes[0];
+      return plural(sizes.length, "Gruppe", "Gruppen") + " à " + (lo === hi ? hi : lo + "–" + hi);
+    }
+
+    /* Viele zufällige Versuche, jeder verteilt gierig nach Kosten; der beste gewinnt.
+       Kosten: Gruppe zu voll ≫ „nicht zusammen“ verletzt ≫ „verteilen“ ungleich ≫ gleiche Paare wie letztes Mal. */
+    function formGroups(c) {
+      var people = present(c), n = people.length;
+      var sizes = groupSizes(n), g = sizes.length;
+      var idx = {};
+      people.forEach(function (p, i) { idx[p] = i; });
+      var inClass = function (name) { return idx.hasOwnProperty(name); };
+
+      /* „immer zusammen“ → Blöcke (Union-Find) */
+      var parent = people.map(function (_, i) { return i; });
+      var find = function (i) { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
+      var rules = c.rules.map(function (r) { return { type: r.type, names: r.names.filter(inClass) }; })
+        .filter(function (r) { return r.names.length >= 2; });
+      rules.forEach(function (r) {
+        if (r.type !== "together") return;
+        for (var i = 1; i < r.names.length; i++) parent[find(idx[r.names[i]])] = find(idx[r.names[0]]);
+      });
+      var unitMap = {};
+      people.forEach(function (p, i) { var r = find(i); (unitMap[r] = unitMap[r] || []).push(i); });
+      var units = Object.keys(unitMap).map(function (k) { return unitMap[k]; });
+
+      var apart = {}, pk = function (a, b) { return a < b ? a + "|" + b : b + "|" + a; };
+      var spreads = [], spreadOf = people.map(function () { return []; });
+      rules.forEach(function (r) {
+        var ids = r.names.map(function (s) { return idx[s]; });
+        if (r.type === "apart") {
+          for (var i = 0; i < ids.length; i++) for (var j = i + 1; j < ids.length; j++) apart[pk(ids[i], ids[j])] = true;
+        } else if (r.type === "spread") {
+          var si = spreads.length;
+          spreads.push({ rule: r, cap: Math.ceil(ids.length / g) });
+          ids.forEach(function (id) { spreadOf[id].push(si); });
+        }
+      });
+      var before = {};
+      if (state.gFresh) (c.groups || []).forEach(function (grp) {
+        var ids = grp.filter(inClass).map(function (s) { return idx[s]; });
+        for (var i = 0; i < ids.length; i++) for (var j = i + 1; j < ids.length; j++) before[pk(ids[i], ids[j])] = true;
+      });
+
+      function placeCost(unit, members, free) {
+        var cost = unit.length > free ? 1e6 * (unit.length - free) : 0;
+        unit.forEach(function (a) {
+          members.forEach(function (b) {
+            var k = pk(a, b);
+            if (apart[k]) cost += 1000;
+            if (before[k]) cost += 1;
+            spreadOf[a].forEach(function (s) { if (spreadOf[b].indexOf(s) >= 0) cost += 10; });
+          });
+        });
+        return cost;
+      }
+      function evaluate(groups) {
+        var cost = 0, broken = [];
+        groups.forEach(function (m, gi) {
+          if (m.length > sizes[gi]) cost += 1e6 * (m.length - sizes[gi]);
+          for (var i = 0; i < m.length; i++) for (var j = i + 1; j < m.length; j++) {
+            var k = pk(m[i], m[j]);
+            if (apart[k]) cost += 1000;
+            if (before[k]) cost += 1;
+          }
+        });
+        spreads.forEach(function (s, si) {
+          groups.forEach(function (m) {
+            var cnt = m.filter(function (id) { return spreadOf[id].indexOf(si) >= 0; }).length;
+            if (cnt > s.cap) cost += 10 * (cnt - s.cap);
+          });
+        });
+        return cost;
+      }
+      function attempt() {
+        var groups = sizes.map(function () { return []; }), free = sizes.slice();
+        var order = units.map(function (u) {
+          var spr = u.reduce(function (t, id) { return t + spreadOf[id].length; }, 0);
+          return { u: u, spr: spr, r: randInt(1e9) };
+        }).sort(function (a, b) { return (b.u.length - a.u.length) || (b.spr - a.spr) || (a.r - b.r); });
+        order.forEach(function (o) {
+          var best = [], bestCost = Infinity;
+          groups.forEach(function (m, gi) {
+            var cost = placeCost(o.u, m, free[gi]);
+            if (cost < bestCost) { bestCost = cost; best = [gi]; }
+            else if (cost === bestCost) best.push(gi);
+          });
+          var gi = best[randInt(best.length)];
+          groups[gi] = groups[gi].concat(o.u);
+          free[gi] -= o.u.length;
+        });
+        return groups;
+      }
+
+      var bestGroups = null, bestCost = Infinity;
+      for (var t = 0; t < 600 && bestCost > 0; t++) {
+        var cand = attempt(), cost = evaluate(cand);
+        if (cost < bestCost) { bestCost = cost; bestGroups = cand; }
+      }
+      bestGroups = (bestGroups || []).map(function (m) { return pick(m, m.length).map(function (id) { return people[id]; }); });
+      bestGroups = pick(bestGroups, bestGroups.length).sort(function (a, b) { return b.length - a.length; });
+
+      /* Welche Regeln ließen sich nicht erfüllen? */
+      var warn = [];
+      var groupOf = {};
+      bestGroups.forEach(function (m, gi) { m.forEach(function (s) { groupOf[s] = gi; }); });
+      rules.forEach(function (r) {
+        if (r.type === "apart") {
+          var seen = {}, clash = false;
+          r.names.forEach(function (s) { if (seen[groupOf[s]]) clash = true; seen[groupOf[s]] = true; });
+          if (clash) warn.push("„nicht zusammen“ (" + r.names.join(", ") + ") ging nicht ganz auf – es gibt zu wenige Gruppen.");
+        } else if (r.type === "spread") {
+          var cap = Math.ceil(r.names.length / g), counts = {};
+          r.names.forEach(function (s) { counts[groupOf[s]] = (counts[groupOf[s]] || 0) + 1; });
+          if (Object.keys(counts).some(function (k) { return counts[k] > cap; })) warn.push("„verteilen“ (" + r.names.join(", ") + ") ist nicht ganz gleichmäßig.");
+        }
+      });
+      if (units.some(function (u) { return u.length > sizes[0]; })) warn.push("Eine „immer zusammen“-Regel umfasst mehr Personen als in eine Gruppe passen. Diese Gruppe ist deshalb größer.");
+      return { groups: bestGroups, warn: warn };
+    }
+
     function showNotice(text) {
       var n = $("notice");
       n.textContent = text;
@@ -494,12 +768,49 @@
       return ol;
     }
 
+    function groupsView(groups) {
+      var wrap = document.createElement("div");
+      wrap.className = "groups";
+      groups.forEach(function (m, i) {
+        var box = document.createElement("section");
+        box.className = "group";
+        box.style.animationDelay = Math.min(i * 60, 600) + "ms";
+        var h = document.createElement("h3");
+        h.textContent = "gruppe " + (i + 1) + " · " + m.length;
+        box.appendChild(h);
+        var ul = document.createElement("ul");
+        m.forEach(function (s) { var li = document.createElement("li"); li.textContent = s; ul.appendChild(li); });
+        box.appendChild(ul);
+        wrap.appendChild(box);
+      });
+      return wrap;
+    }
+
     function renderStage() {
       var c = active(), stage = $("stage");
       stage.textContent = "";
-      if (c.last && c.last.length) { stage.appendChild(resultsList(c.last, true)); return; }
       var p = document.createElement("p");
       p.className = "stage-empty";
+      if (state.mode === "groups") {
+        stage.style.justifyContent = c.groups.length ? "flex-start" : "";
+        if (c.groups.length) {
+          groupWarn.forEach(function (w) {
+            var warn = document.createElement("p");
+            warn.className = "rule-warn";
+            warn.textContent = w;
+            stage.appendChild(warn);
+          });
+          stage.appendChild(groupsView(c.groups));
+          return;
+        }
+        if (!c.students.length) p.textContent = "Trag rechts die Namen von " + c.name + " ein.";
+        else if (present(c).length < 2) p.textContent = "Für Gruppen braucht es mindestens zwei Anwesende.";
+        else p.textContent = "Wer arbeitet mit wem?";
+        stage.appendChild(p);
+        return;
+      }
+      stage.style.justifyContent = "";
+      if (c.last && c.last.length) { stage.appendChild(resultsList(c.last, true)); return; }
       if (!c.students.length) p.textContent = "Trag rechts die Namen von " + c.name + " ein.";
       else if (!present(c).length) p.textContent = "Heute fehlen alle. Tippe rechts an, wer da ist.";
       else p.textContent = "Wer ist dran?";
@@ -507,7 +818,36 @@
     }
 
     function renderControls() {
-      var c = active(), n = present(c).length;
+      var c = active(), n = present(c).length, groupsMode = state.mode === "groups";
+      $("mode-single").setAttribute("aria-pressed", String(!groupsMode));
+      $("mode-groups").setAttribute("aria-pressed", String(groupsMode));
+      $("stepper-label").hidden = groupsMode;
+      $("g-mode").hidden = !groupsMode;
+      $("no-repeat-label").hidden = groupsMode;
+      $("g-fresh-label").hidden = !groupsMode;
+      $("reset-round").hidden = groupsMode;
+      $("g-copy").hidden = !groupsMode;
+      $("kbd-what").textContent = groupsMode ? "bildet Gruppen" : "lost aus";
+      $("export-one").textContent = "Nur " + c.name + " exportieren";
+      $("export-one").disabled = !c.students.length;
+      if (groupsMode) {
+        var key = state.gMode === "count" ? "gCount" : "gSize";
+        var val = Math.max(2, Math.min(state[key], Math.max(n, 2)));
+        $("g-mode").value = state.gMode;
+        $("count").textContent = val;
+        $("minus").disabled = val <= 2;
+        $("plus").disabled = val >= Math.max(n, 2);
+        $("minus").setAttribute("aria-label", state.gMode === "count" ? "Eine Gruppe weniger" : "Eine Person weniger pro Gruppe");
+        $("plus").setAttribute("aria-label", state.gMode === "count" ? "Eine Gruppe mehr" : "Eine Person mehr pro Gruppe");
+        $("draw").disabled = n < 2;
+        $("draw").textContent = n < 2 ? "Zu wenige im Topf" : c.groups.length ? "Neu einteilen" : "Gruppen bilden";
+        $("g-fresh").checked = !!state.gFresh;
+        $("g-copy").disabled = !c.groups.length;
+        $("board-meta").textContent = c.name + " · " + n + " da" + (n >= 2 ? " → " + sizeText(groupSizes(n)) : "");
+        return;
+      }
+      $("minus").setAttribute("aria-label", "Eine Person weniger");
+      $("plus").setAttribute("aria-label", "Eine Person mehr");
       var count = Math.max(1, Math.min(state.count, Math.max(n, 1)));
       $("count").textContent = count;
       $("minus").disabled = count <= 1;
@@ -519,8 +859,6 @@
       var meta = c.name + " · " + plural(n, "Name", "Namen") + " im Topf";
       if (state.noRepeat && n) meta = c.name + " · noch " + pool(c).length + " von " + n + " in dieser Runde";
       $("board-meta").textContent = meta;
-      $("export-one").textContent = "Nur " + c.name + " exportieren";
-      $("export-one").disabled = !c.students.length;
     }
 
     function renderTabs() {
@@ -534,6 +872,7 @@
         b.setAttribute("aria-pressed", String(c.id === state.activeId && !creating));
         b.addEventListener("click", function () {
           state.activeId = c.id; creating = false; editing = false; armedDelete = false;
+          ruleDraft = null; groupWarn = [];
           refreshDay(c); save(); render();
         });
         wrap.appendChild(b);
@@ -629,6 +968,10 @@
       c.absent = c.absent.filter(keep);
       c.drawn = c.drawn.filter(keep);
       c.last = (c.last || []).filter(keep);
+      c.rules = (c.rules || []).map(function (r) {
+        return { type: r.type, names: r.names.filter(keep) };
+      }).filter(function (r) { return r.names.length >= 2; });
+      c.groups = (c.groups || []).map(function (g) { return g.filter(keep); }).filter(function (g) { return g.length; });
     }
 
     function renderRoster(view, c) {
@@ -673,10 +1016,12 @@
         wrap.appendChild(how);
         var roster = document.createElement("div");
         roster.className = "roster";
+        var groupsMode = state.mode === "groups", groupOf = {};
+        if (groupsMode) c.groups.forEach(function (m, gi) { m.forEach(function (s) { groupOf[s] = gi + 1; }); });
         c.students.forEach(function (s) {
           var isAbsent = c.absent.indexOf(s) >= 0;
-          var isNow = (c.last || []).indexOf(s) >= 0 && !isAbsent;
-          var isDone = c.drawn.indexOf(s) >= 0 && !isAbsent && !isNow;
+          var isNow = !groupsMode && (c.last || []).indexOf(s) >= 0 && !isAbsent;
+          var isDone = !groupsMode && c.drawn.indexOf(s) >= 0 && !isAbsent && !isNow;
           var chip = document.createElement("button");
           chip.type = "button";
           chip.className = "kid" + (isAbsent ? " absent" : isNow ? " now" : isDone ? " done" : "");
@@ -686,7 +1031,7 @@
           n.className = "name";
           n.textContent = s;
           chip.appendChild(n);
-          var label = isAbsent ? "fehlt" : isNow ? "dran" : isDone ? "war dran" : "";
+          var label = isAbsent ? "fehlt" : isNow ? "dran" : isDone ? "war dran" : groupOf[s] ? "gr. " + groupOf[s] : "";
           if (label) {
             var tag = document.createElement("span");
             tag.className = "ktag";
@@ -716,7 +1061,147 @@
         row.appendChild(all);
       }
       wrap.appendChild(row);
+      if (state.mode === "groups" && c.students.length) renderRules(wrap, c);
       view.appendChild(wrap);
+    }
+
+    /* Regeln für die Gruppenbildung */
+    function renderRules(parentEl, c) {
+      var box = document.createElement("div");
+      box.className = "rules";
+      var h = document.createElement("h3");
+      h.textContent = "Regeln für Gruppen";
+      box.appendChild(h);
+
+      if (!c.rules.length && !ruleDraft) {
+        var none = document.createElement("p");
+        none.className = "hint";
+        none.textContent = "Noch keine Regeln. Ohne Regeln wird rein zufällig eingeteilt.";
+        box.appendChild(none);
+      }
+      c.rules.forEach(function (r, i) {
+        var row = document.createElement("div");
+        row.className = "rule";
+        var t = document.createElement("span");
+        t.className = "rtype " + r.type;
+        t.textContent = RULE_TYPES[r.type].label;
+        var names = document.createElement("span");
+        names.className = "rnames";
+        names.textContent = r.names.join(", ");
+        var del = document.createElement("button");
+        del.type = "button";
+        del.textContent = "×";
+        del.setAttribute("aria-label", "Regel „" + RULE_TYPES[r.type].label + "“ für " + r.names.join(", ") + " löschen");
+        del.addEventListener("click", function () { c.rules.splice(i, 1); save(); render(); });
+        row.appendChild(t); row.appendChild(names); row.appendChild(del);
+        box.appendChild(row);
+      });
+
+      if (!ruleDraft) {
+        var add = document.createElement("button");
+        add.type = "button";
+        add.className = "btn btn-ghost";
+        add.style.alignSelf = "flex-start";
+        add.textContent = "+ Regel";
+        add.addEventListener("click", function () { ruleDraft = { type: "apart", names: [] }; render(); $("rule-type").focus(); });
+        box.appendChild(add);
+        parentEl.appendChild(box);
+        return;
+      }
+
+      var ed = document.createElement("div");
+      ed.className = "rule-editor";
+      var lab = document.createElement("label");
+      lab.className = "flabel";
+      lab.htmlFor = "rule-type";
+      lab.textContent = "neue regel";
+      var sel = document.createElement("select");
+      sel.className = "inp";
+      sel.id = "rule-type";
+      Object.keys(RULE_TYPES).forEach(function (k) {
+        var o = document.createElement("option");
+        o.value = k;
+        o.textContent = RULE_TYPES[k].label;
+        sel.appendChild(o);
+      });
+      sel.value = ruleDraft.type;
+      sel.addEventListener("change", function () { ruleDraft.type = sel.value; render(); $("rule-type").focus(); });
+      var help = document.createElement("p");
+      help.className = "hint";
+      help.textContent = RULE_TYPES[ruleDraft.type].help + " Tippe mindestens zwei Namen an.";
+      var picks = document.createElement("div");
+      picks.className = "roster";
+      c.students.forEach(function (s) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "kid pick";
+        b.dataset.name = s;
+        b.textContent = s;
+        b.setAttribute("aria-pressed", String(ruleDraft.names.indexOf(s) >= 0));
+        b.addEventListener("click", function () {
+          var i = ruleDraft.names.indexOf(s);
+          if (i >= 0) ruleDraft.names.splice(i, 1); else ruleDraft.names.push(s);
+          render();
+          var again = [].filter.call(document.querySelectorAll(".kid.pick"), function (x) { return x.dataset.name === s; })[0];
+          if (again) again.focus();
+        });
+        picks.appendChild(b);
+      });
+      var row = document.createElement("div");
+      row.className = "row";
+      var ok = document.createElement("button");
+      ok.type = "button";
+      ok.className = "btn";
+      ok.textContent = ruleDraft.names.length >= 2 ? "Regel speichern (" + ruleDraft.names.length + ")" : "Regel speichern";
+      ok.disabled = ruleDraft.names.length < 2;
+      ok.addEventListener("click", saveRule);
+      var cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.className = "btn btn-ghost";
+      cancel.textContent = "Abbrechen";
+      cancel.addEventListener("click", function () { ruleDraft = null; render(); });
+      row.appendChild(ok); row.appendChild(cancel);
+      ed.appendChild(lab); ed.appendChild(sel); ed.appendChild(help); ed.appendChild(picks); ed.appendChild(row);
+      box.appendChild(ed);
+      parentEl.appendChild(box);
+    }
+
+    /* Widersprüche zwischen „immer zusammen“ und „nicht zusammen“ abfangen */
+    function saveRule() {
+      var c = active(), r = ruleDraft;
+      if (!r || r.names.length < 2) return;
+      var opposite = r.type === "apart" ? "together" : r.type === "together" ? "apart" : null;
+      if (opposite) {
+        /* Für „immer zusammen“ zählt auch, was über andere Regeln verbunden ist. */
+        var together = c.rules.filter(function (x) { return x.type === "together"; }).concat(r.type === "together" ? [r] : []);
+        var linked = function (a, b) {
+          var seen = [a], queue = [a];
+          while (queue.length) {
+            var cur = queue.shift();
+            if (cur === b) return true;
+            together.forEach(function (t) {
+              if (t.names.indexOf(cur) < 0) return;
+              t.names.forEach(function (n) { if (seen.indexOf(n) < 0) { seen.push(n); queue.push(n); } });
+            });
+          }
+          return false;
+        };
+        var apartRules = c.rules.filter(function (x) { return x.type === "apart"; }).concat(r.type === "apart" ? [r] : []);
+        var clash = null;
+        apartRules.forEach(function (a) {
+          for (var i = 0; i < a.names.length && !clash; i++)
+            for (var j = i + 1; j < a.names.length && !clash; j++)
+              if (linked(a.names[i], a.names[j])) clash = [a.names[i], a.names[j]];
+        });
+        if (clash) {
+          showNotice("Widerspruch: " + clash[0] + " und " + clash[1] + " wären dann gleichzeitig „immer zusammen“ und „nicht zusammen“. Die Regel wurde nicht gespeichert.");
+          return;
+        }
+      }
+      c.rules.push({ type: r.type, names: c.students.filter(function (s) { return r.names.indexOf(s) >= 0; }) });
+      ruleDraft = null;
+      save(); render();
+      showNotice("Regel gespeichert. Sie gilt ab der nächsten Einteilung.");
     }
 
     function renderClass() {
@@ -741,8 +1226,20 @@
       else {
         c.absent.push(name);
         c.last = (c.last || []).filter(function (s) { return s !== name; });
+        c.groups = c.groups.map(function (g) { return g.filter(function (s) { return s !== name; }); })
+          .filter(function (g) { return g.length; });
       }
       save(); render();
+    }
+
+    function makeGroups() {
+      var c = active();
+      if (present(c).length < 2) return;
+      var res = formGroups(c);
+      c.groups = res.groups;
+      groupWarn = res.warn;
+      save(); render();
+      $("live").textContent = res.groups.map(function (m, i) { return "Gruppe " + (i + 1) + ": " + m.join(", "); }).join(". ");
     }
 
     function replaceAbsent(name) {
@@ -770,6 +1267,7 @@
     }
 
     function draw() {
+      if (state.mode === "groups") { if (!rolling) makeGroups(); return; }
       var c = active(), n = present(c).length;
       if (rolling || !n) return;
       var k = Math.min(Math.max(1, state.count), n);
@@ -832,7 +1330,9 @@
             fehlen: c.absent.slice(),
             fehlenAm: c.absentDate,
             warenDran: c.drawn.slice(),
-            zuletzt: (c.last || []).slice()
+            zuletzt: (c.last || []).slice(),
+            regeln: c.rules.map(function (r) { return { art: r.type, namen: r.names.slice() }; }),
+            gruppen: c.groups.map(function (g) { return g.slice(); })
           };
         })
       };
@@ -881,7 +1381,11 @@
             absent: strings(k.fehlen),
             absentDate: typeof k.fehlenAm === "string" ? k.fehlenAm : today(),
             drawn: strings(k.warenDran),
-            last: strings(k.zuletzt)
+            last: strings(k.zuletzt),
+            rules: (Array.isArray(k.regeln) ? k.regeln : []).filter(function (r) {
+              return r && RULE_TYPES.hasOwnProperty(r.art);
+            }).map(function (r) { return { type: r.art, names: strings(r.namen) }; }),
+            groups: (Array.isArray(k.gruppen) ? k.gruppen : []).map(strings)
           };
         });
       }
@@ -910,12 +1414,15 @@
         target.absentDate = k.absentDate;
         target.drawn = k.drawn;
         target.last = k.last;
+        target.rules = k.rules || [];
+        target.groups = k.groups || [];
         keepOnly(target);
         refreshDay(target);
         if (!firstId) firstId = target.id;
       });
       if (firstId) state.activeId = firstId;
       editing = false; creating = false; armedDelete = false;
+      ruleDraft = null; groupWarn = [];
     }
 
     $("file-open").addEventListener("click", function () { $("file-load").click(); });
@@ -940,8 +1447,34 @@
 
     /* ---------- Bedienung ---------- */
     $("draw").addEventListener("click", draw);
-    $("minus").addEventListener("click", function () { state.count = Math.max(1, Math.min(state.count, present(active()).length) - 1); save(); renderControls(); });
-    $("plus").addEventListener("click", function () { state.count = Math.min(present(active()).length, state.count + 1); save(); renderControls(); });
+    function step(delta) {
+      var n = present(active()).length;
+      if (state.mode === "groups") {
+        var key = state.gMode === "count" ? "gCount" : "gSize";
+        state[key] = Math.max(2, Math.min(Math.min(state[key], Math.max(n, 2)) + delta, Math.max(n, 2)));
+      } else if (delta < 0) state.count = Math.max(1, Math.min(state.count, n) - 1);
+      else state.count = Math.min(n, state.count + 1);
+      save(); renderControls();
+    }
+    $("minus").addEventListener("click", function () { step(-1); });
+    $("plus").addEventListener("click", function () { step(1); });
+    function setMode(m) {
+      if (rolling || state.mode === m) return;
+      state.mode = m; ruleDraft = null;
+      save(); render();
+    }
+    $("mode-single").addEventListener("click", function () { setMode("single"); });
+    $("mode-groups").addEventListener("click", function () { setMode("groups"); });
+    $("g-mode").addEventListener("change", function (e) { state.gMode = e.target.value; save(); renderControls(); });
+    $("g-fresh").addEventListener("change", function (e) { state.gFresh = e.target.checked; save(); });
+    $("g-copy").addEventListener("click", function () {
+      var c = active();
+      var text = c.name + "\n\n" + c.groups.map(function (m, i) { return "Gruppe " + (i + 1) + ": " + m.join(", "); }).join("\n") + "\n";
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { showNotice("Die Gruppen sind in der Zwischenablage."); },
+          function () { showNotice("Kopieren hat nicht geklappt. Der Browser hat es blockiert."); });
+      } else showNotice("Dieser Browser kann nicht in die Zwischenablage kopieren.");
+    });
     $("no-repeat").addEventListener("change", function (e) { state.noRepeat = e.target.checked; save(); render(); });
     $("reset-round").addEventListener("click", function () {
       var c = active(); c.drawn = []; c.last = []; save(); render();
