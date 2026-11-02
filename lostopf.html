@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lostopf · Unterricht</title>
+  <meta name="description" content="Schülerinnen und Schüler zufällig auslosen – mit Abwesenheiten, ohne Wiederholung. Die Namen bleiben im eigenen Browser.">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "hell") document.documentElement.setAttribute("data-theme", "light");
+      if (t === "dunkel") document.documentElement.setAttribute("data-theme", "dark");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    /* ---------- Lostopf: Tafel für den Beamer, daneben die Klasse ---------- */
+    .lt-page .container { max-width: 1400px; }
+    /* Die Tafel bleibt in beiden Farbschemata dunkel, damit sie am Beamer gut lesbar ist. */
+    .lt-wrap {
+      --board: #12302b;
+      --board-line: #2b4f49;
+      --chalk: #eef6f4;
+      --chalk-dim: #9fbcb5;
+      --draw: #2dd4bf;
+      --on-draw: #06201d;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      align-items: start;
+      padding-top: 24px;
+    }
+    @media (max-width: 860px) { .lt-wrap { grid-template-columns: minmax(0, 1fr); } }
+
+    /* Tafel */
+    .board {
+      background: var(--board);
+      color: var(--chalk);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(16px, 2.5vw, 28px);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: min(34rem, 80vh);
+    }
+    .board:fullscreen { min-height: 100%; border-radius: 0; padding: 3vw; }
+    .board :focus-visible { outline-color: var(--draw); }
+    .board-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 4px 16px;
+    }
+    .board-head h1 {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .board-head h1::before { content: "// "; color: var(--draw); }
+    .board-meta {
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      color: var(--chalk-dim);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stage { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+    .stage-empty {
+      margin: 0;
+      font-weight: 600;
+      font-size: clamp(1.75rem, 4vw, 3rem);
+      color: var(--chalk-dim);
+      text-wrap: balance;
+    }
+    .results {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px 32px;
+      min-width: 0;
+    }
+    .results[data-size="xl"], .results[data-size="l"] { grid-template-columns: minmax(0, 1fr); }
+    .results[data-size="m"] { grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }
+    .results li {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: baseline;
+      gap: 6px 10px;
+      min-width: 0;
+    }
+    .results .nr {
+      font-family: var(--font-mono);
+      font-size: .875rem;
+      color: var(--chalk-dim);
+      width: 1.5em;
+      text-align: right;
+    }
+    .results .who {
+      grid-column: 2;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      line-height: 1.08;
+      min-width: 0;
+      overflow-wrap: break-word;
+    }
+    .results[data-size="xl"] .who { font-size: clamp(2.75rem, 7.5vw, 6.5rem); }
+    .results[data-size="l"]  .who { font-size: clamp(2rem, 4.2vw, 3.5rem); }
+    .results[data-size="m"]  .who { font-size: clamp(1.375rem, 2.4vw, 2rem); }
+    .board:fullscreen .results[data-size="xl"] .who { font-size: 11vw; }
+    .board:fullscreen .results[data-size="l"]  .who { font-size: 6.5vw; }
+    .board:fullscreen .results[data-size="m"]  .who { font-size: 3.5vw; }
+    .results.rolling .who { color: var(--chalk-dim); }
+    .results .settled .who { color: var(--chalk); }
+    .results .fehlt {
+      grid-column: 2;
+      justify-self: start;
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      background: none;
+      border: 1px solid var(--board-line);
+      border-radius: 999px;
+      color: var(--chalk-dim);
+      padding: 2px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .results .fehlt:hover { color: var(--chalk); border-color: var(--chalk-dim); }
+    .results.rolling .fehlt { visibility: hidden; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 16px;
+      border-top: 1px solid var(--board-line);
+      padding-top: 20px;
+    }
+    .stepper { display: flex; align-items: center; gap: 4px; }
+    .stepper > span:first-child { font-family: var(--font-mono); font-size: .85rem; color: var(--chalk-dim); margin-right: 6px; }
+    .stepper button {
+      width: 44px; height: 44px;
+      background: none;
+      border: 1px solid var(--board-line);
+      border-radius: 10px;
+      color: var(--chalk);
+      font-size: 1.25rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .stepper button:hover:not(:disabled) { border-color: var(--chalk-dim); }
+    .stepper button:disabled { opacity: .4; cursor: default; }
+    #count {
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      width: 2.5rem;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    #draw {
+      flex: 1 1 11rem;
+      max-width: 22rem;
+      min-height: 44px;
+      background: var(--draw);
+      color: var(--on-draw);
+      border: 0;
+      border-radius: 10px;
+      font: 700 1.2rem/1 var(--font-sans);
+      padding: 10px 24px;
+      cursor: pointer;
+    }
+    #draw:hover:not(:disabled) { filter: brightness(1.08); }
+    #draw:disabled { background: var(--board-line); color: var(--chalk-dim); cursor: default; }
+    .controls-sub {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 16px;
+      font-size: .92rem;
+      color: var(--chalk-dim);
+    }
+    .controls-sub label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .controls-sub input { width: 18px; height: 18px; accent-color: var(--draw); margin: 0; }
+    .board-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+    .board-links button {
+      background: none; border: 0; padding: 4px 0;
+      font: inherit;
+      color: var(--chalk-dim);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+    .board-links button:hover:not(:disabled) { color: var(--chalk); }
+    .board-links button:disabled { opacity: .5; cursor: default; }
+    kbd {
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      border: 1px solid var(--board-line);
+      border-radius: 4px;
+      padding: 1px 6px;
+    }
+    @media (hover: none) { .kbd-hint { display: none; } }
+
+    /* Klasse */
+    .lt-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .lt-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .lt-tabs .lt-add { color: var(--accent); border-style: dashed; }
+
+    .head-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 4px 16px;
+    }
+    .lt-side h2 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: -.01em;
+      overflow-wrap: anywhere;
+    }
+    .tally { font-family: var(--font-mono); color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+    .tally b { color: var(--bad); font-weight: 600; }
+    .hint { margin: 0; color: var(--muted); font-size: .94rem; }
+
+    .roster {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr));
+      gap: 6px;
+    }
+    .kid {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 44px;
+      min-width: 0;
+      padding: 6px 10px;
+      font: inherit;
+      color: var(--text);
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+    }
+    .kid:hover { border-color: var(--accent); }
+    .kid .ktag { font-family: var(--font-mono); font-size: .72rem; flex: none; }
+    .kid.done { background: var(--accent-soft); }
+    .kid.done .ktag { color: var(--accent); font-weight: 600; }
+    .kid.now { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+    .kid.absent { background: none; border-style: dashed; color: var(--muted); }
+    .kid.absent .name { text-decoration: line-through; }
+    .kid.absent .ktag { color: var(--bad); font-weight: 600; }
+
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .spread { justify-content: space-between; }
+    .btn-danger { color: var(--bad); }
+    .btn-danger:hover:not(:disabled) { border-color: var(--bad); color: var(--bad); }
+    .btn-danger.armed { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+
+    .editor { display: flex; flex-direction: column; gap: 12px; }
+    .editor label { display: flex; flex-direction: column; gap: 6px; }
+    .editor .inp { width: 100%; font-family: var(--font-sans); }
+    .editor textarea.inp { resize: vertical; line-height: 1.5; }
+
+    .notice {
+      margin: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      background: var(--surface);
+      font-size: .94rem;
+    }
+    .notice.warn { border-left-color: var(--bad); }
+
+    details.lt-backup { border-top: 1px solid var(--border); padding-top: 14px; }
+    details.lt-backup summary { cursor: pointer; font-family: var(--font-mono); font-size: .85rem; color: var(--muted); }
+    details.lt-backup summary:hover { color: var(--text); }
+    .backup-body { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+    .backup-body p { margin: 0; color: var(--muted); font-size: .94rem; max-width: 65ch; }
+  </style>
+</head>
+<body class="lt-page">
+
+  <header class="site-header">
+    <div class="container topbar">
+      <div class="brand"><a href="index.html" title="Zur Übersicht">~/<span>unterricht</span></a><span class="sep">/</span><span class="here">lostopf</span></div>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Farbschema wechseln">theme: auto</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="container lt-wrap">
+      <section class="board" id="board" aria-label="Auslosung">
+        <div class="board-head">
+          <h1>Lostopf</h1>
+          <span class="board-meta" id="board-meta"></span>
+        </div>
+        <div class="stage" id="stage"></div>
+        <div class="visually-hidden" id="live" aria-live="polite"></div>
+        <div class="controls">
+          <div class="stepper" role="group" aria-label="Anzahl der Auszulosenden">
+            <span>anzahl</span>
+            <button type="button" id="minus" aria-label="Eine Person weniger">&minus;</button>
+            <output id="count" for="minus plus">1</output>
+            <button type="button" id="plus" aria-label="Eine Person mehr">+</button>
+          </div>
+          <button type="button" id="draw">Auslosen</button>
+        </div>
+        <div class="controls-sub">
+          <label for="no-repeat">
+            <input type="checkbox" id="no-repeat">
+            Niemand doppelt, bis alle dran waren
+          </label>
+          <div class="board-links">
+            <span class="kbd-hint"><kbd>Leertaste</kbd> lost aus</span>
+            <button type="button" id="reset-round">Runde neu starten</button>
+            <button type="button" id="fullscreen">Vollbild</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="lt-side" aria-label="Klasse">
+        <div class="lt-tabs" id="tabs"></div>
+        <p class="notice warn" id="storage-warning" hidden>Dieser Browser speichert gerade nichts, zum Beispiel im privaten Fenster. Exportiere deine Klassen vor dem Schließen unten als Datei.</p>
+        <p class="notice" id="notice" role="status" hidden></p>
+        <div id="class-view"></div>
+        <details class="lt-backup">
+          <summary>Klassen exportieren oder importieren</summary>
+          <div class="backup-body">
+            <p>Die Namen liegen nur in diesem Browser und gehen an keinen Server. Exportiere sie als Datei, um sie zu sichern, auf einen anderen Rechner mitzunehmen oder einer Kollegin oder einem Kollegen zu geben. Der Export enthält die Namen, wer heute fehlt und wer in dieser Runde schon dran war.</p>
+            <div class="row">
+              <button type="button" class="btn" id="export-all">Alle Klassen exportieren</button>
+              <button type="button" class="btn btn-ghost" id="export-one">Nur diese Klasse exportieren</button>
+            </div>
+            <div class="row">
+              <button type="button" class="btn btn-ghost" id="file-open">Datei importieren</button>
+              <input type="file" id="file-load" accept=".json,.txt,application/json,text/plain" hidden>
+            </div>
+            <p>Beim Import werden Klassen mit gleichem Namen ersetzt, alle anderen bleiben. Auch Textdateien gehen: jede Klasse beginnt mit einer Zeile wie „# 10a“, darunter ein Name pro Zeile.</p>
+          </div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="mono">© 2026</span>
+      <nav>
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var KEY = "lostopf.v1";
+    var FORMAT = "lostopf";
+    var storageOk = true;
+    var $ = function (id) { return document.getElementById(id); };
+
+    function today() {
+      var d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+    function uid() { return "k" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36); }
+    function blankClass(name, students) {
+      return { id: uid(), name: name, students: students || [], absent: [], absentDate: today(), drawn: [], last: [] };
+    }
+    function seed() {
+      var sample = blankClass("Beispielklasse", [
+        "Mira Hoffmann", "Jonas Keller", "Elif Demir", "Leon Wagner", "Sofia Rossi", "Tim Brandt",
+        "Hanna Vogel", "Luca Maier", "Amir Haddad", "Nele Sommer", "Paul Schuster", "Zofia Nowak",
+        "Ben Fischer", "Lea Krüger", "David Lang", "Marie Weiß"
+      ]);
+      sample.absent = ["Tim Brandt"];
+      sample.drawn = ["Jonas Keller", "Nele Sommer", "Mira Hoffmann"];
+      sample.last = ["Mira Hoffmann"];
+      return { activeId: sample.id, classes: [sample], count: 1, noRepeat: true };
+    }
+    function load() {
+      try {
+        var raw = localStorage.getItem(KEY);
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.classes) && parsed.classes.length) return parsed;
+        }
+      } catch (e) { storageOk = false; }
+      return seed();
+    }
+    function save() {
+      try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
+      catch (e) { storageOk = false; }
+      $("storage-warning").hidden = storageOk;
+    }
+
+    var state = load();
+    var editing = false;
+    var creating = false;
+    var armedDelete = false;
+    var rolling = false;
+    var noticeTimer = null;
+
+    function active() {
+      for (var i = 0; i < state.classes.length; i++) if (state.classes[i].id === state.activeId) return state.classes[i];
+      state.activeId = state.classes[0].id;
+      return state.classes[0];
+    }
+    /* Abwesenheit gilt nur für den Tag, an dem sie gesetzt wurde. */
+    function refreshDay(c) {
+      if (c.absentDate !== today()) { c.absent = []; c.absentDate = today(); }
+    }
+    function present(c) { return c.students.filter(function (s) { return c.absent.indexOf(s) < 0; }); }
+    function pool(c) { return present(c).filter(function (s) { return c.drawn.indexOf(s) < 0; }); }
+
+    /* Gleichverteilte Zufallszahl 0..n-1 ohne Modulo-Verzerrung. */
+    function randInt(n) {
+      if (window.crypto && crypto.getRandomValues) {
+        var limit = Math.floor(0x100000000 / n) * n, buf = new Uint32Array(1);
+        do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+        return buf[0] % n;
+      }
+      return Math.floor(Math.random() * n);
+    }
+    function pick(list, k) {
+      var a = list.slice(), out = [];
+      for (var i = 0; i < k && a.length; i++) out.push(a.splice(randInt(a.length), 1)[0]);
+      return out;
+    }
+    function drawFrom(c, k) {
+      if (!state.noRepeat) return { names: pick(present(c), k), newRound: false };
+      var first = pick(pool(c), k), newRound = false;
+      c.drawn = c.drawn.concat(first);
+      if (first.length < k) {
+        newRound = true;
+        var rest = present(c).filter(function (s) { return first.indexOf(s) < 0; });
+        var second = pick(rest, k - first.length);
+        c.drawn = second.slice();
+        first = first.concat(second);
+      }
+      return { names: first, newRound: newRound };
+    }
+
+    function showNotice(text) {
+      var n = $("notice");
+      n.textContent = text;
+      n.hidden = false;
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(function () { n.hidden = true; }, 7000);
+    }
+    function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+    function sizeFor(n) { return n === 1 ? "xl" : n <= 4 ? "l" : "m"; }
+
+    function resultsList(names, withActions) {
+      var ol = document.createElement("ol");
+      ol.className = "results";
+      ol.dataset.size = sizeFor(names.length);
+      names.forEach(function (name, i) {
+        var li = document.createElement("li");
+        if (names.length > 1) {
+          var nr = document.createElement("span");
+          nr.className = "nr";
+          nr.textContent = (i + 1) + ".";
+          li.appendChild(nr);
+        }
+        var who = document.createElement("span");
+        who.className = "who";
+        who.textContent = name;
+        li.appendChild(who);
+        if (withActions) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "fehlt";
+          b.textContent = "fehlt, neu ziehen";
+          b.setAttribute("aria-label", name + " fehlt, neu ziehen");
+          b.addEventListener("click", function () { replaceAbsent(name); });
+          li.appendChild(b);
+        }
+        ol.appendChild(li);
+      });
+      return ol;
+    }
+
+    function renderStage() {
+      var c = active(), stage = $("stage");
+      stage.textContent = "";
+      if (c.last && c.last.length) { stage.appendChild(resultsList(c.last, true)); return; }
+      var p = document.createElement("p");
+      p.className = "stage-empty";
+      if (!c.students.length) p.textContent = "Trag rechts die Namen von " + c.name + " ein.";
+      else if (!present(c).length) p.textContent = "Heute fehlen alle. Tippe rechts an, wer da ist.";
+      else p.textContent = "Wer ist dran?";
+      stage.appendChild(p);
+    }
+
+    function renderControls() {
+      var c = active(), n = present(c).length;
+      var count = Math.max(1, Math.min(state.count, Math.max(n, 1)));
+      $("count").textContent = count;
+      $("minus").disabled = count <= 1;
+      $("plus").disabled = count >= n;
+      $("draw").disabled = n === 0 || rolling;
+      $("draw").textContent = n === 0 ? "Keine Namen im Topf" : count === 1 ? "Auslosen" : count + " auslosen";
+      $("no-repeat").checked = !!state.noRepeat;
+      $("reset-round").disabled = !c.drawn.length && !(c.last && c.last.length);
+      var meta = c.name + " · " + plural(n, "Name", "Namen") + " im Topf";
+      if (state.noRepeat && n) meta = c.name + " · noch " + pool(c).length + " von " + n + " in dieser Runde";
+      $("board-meta").textContent = meta;
+      $("export-one").textContent = "Nur " + c.name + " exportieren";
+      $("export-one").disabled = !c.students.length;
+    }
+
+    function renderTabs() {
+      var wrap = $("tabs");
+      wrap.textContent = "";
+      state.classes.forEach(function (c) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip";
+        b.textContent = c.name;
+        b.setAttribute("aria-pressed", String(c.id === state.activeId && !creating));
+        b.addEventListener("click", function () {
+          state.activeId = c.id; creating = false; editing = false; armedDelete = false;
+          refreshDay(c); save(); render();
+        });
+        wrap.appendChild(b);
+      });
+      var add = document.createElement("button");
+      add.type = "button";
+      add.className = "chip lt-add";
+      add.textContent = "+ Klasse";
+      add.addEventListener("click", function () { creating = true; editing = false; armedDelete = false; render(); });
+      wrap.appendChild(add);
+    }
+
+    function parseNames(text) {
+      var seen = {}, names = [], dupes = [];
+      text.split(/[\r\n;\t]+/).forEach(function (line) {
+        var n = line.trim().replace(/\s+/g, " ");
+        if (!n) return;
+        var k = n.toLocaleLowerCase("de");
+        if (seen[k]) { dupes.push(n); return; }
+        seen[k] = true;
+        names.push(n);
+      });
+      return { names: names, dupes: dupes };
+    }
+
+    function renderEditor(view, c) {
+      var isNew = creating;
+      var form = document.createElement("form");
+      form.className = "editor";
+      form.innerHTML =
+        '<h2></h2>' +
+        '<label for="edit-name"><span class="flabel">klassenname</span><input class="inp" id="edit-name" autocomplete="off"></label>' +
+        '<label for="edit-students"><span class="flabel">namen, einer pro zeile</span><textarea class="inp" id="edit-students" rows="12" placeholder="Mira Hoffmann&#10;Jonas Keller&#10;Elif Demir"></textarea></label>' +
+        '<div class="row"><button type="button" class="btn btn-ghost" id="edit-merge">Nachname/Vorname zu einer Zeile zusammenfügen</button></div>' +
+        '<div class="row spread"><div class="row">' +
+        '<button type="submit" class="btn">Speichern</button>' +
+        '<button type="button" class="btn btn-ghost" id="edit-cancel">Abbrechen</button></div>' +
+        '<button type="button" class="btn btn-ghost btn-danger" id="edit-delete">Klasse löschen</button></div>';
+      form.querySelector("h2").textContent = isNew ? "Neue Klasse" : c.name + " bearbeiten";
+      var nameInput = form.querySelector("#edit-name");
+      var studentsInput = form.querySelector("#edit-students");
+      nameInput.value = isNew ? "" : c.name;
+      studentsInput.value = isNew ? "" : c.students.join("\n");
+      form.querySelector("#edit-merge").addEventListener("click", function () {
+        var lines = studentsInput.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+        if (!lines.length || lines.length % 2) {
+          showNotice("Das geht nur, wenn abwechselnd eine Zeile Nachname und eine Zeile Vorname kommt. Gerade sind es " + lines.length + " Zeilen.");
+          return;
+        }
+        var merged = [];
+        for (var i = 0; i < lines.length; i += 2) merged.push(lines[i + 1] + " " + lines[i]);
+        studentsInput.value = merged.join("\n");
+        this.hidden = true;
+      });
+      var del = form.querySelector("#edit-delete");
+      del.hidden = isNew || state.classes.length < 2;
+      if (armedDelete) { del.classList.add("armed"); del.textContent = c.name + " wirklich löschen"; }
+      del.addEventListener("click", function () {
+        if (!armedDelete) { armedDelete = true; render(); return; }
+        state.classes = state.classes.filter(function (x) { return x.id !== c.id; });
+        state.activeId = state.classes[0].id;
+        armedDelete = false; editing = false;
+        save(); render();
+        showNotice(c.name + " gelöscht.");
+      });
+      form.querySelector("#edit-cancel").addEventListener("click", function () {
+        editing = false; creating = false; armedDelete = false; render();
+      });
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var name = nameInput.value.trim();
+        if (!name) { showNotice("Gib der Klasse einen Namen."); nameInput.focus(); return; }
+        var clash = state.classes.some(function (x) { return x.name === name && (isNew || x.id !== c.id); });
+        if (clash) { showNotice("Es gibt schon eine Klasse „" + name + "“. Wähle einen anderen Namen."); nameInput.focus(); return; }
+        var parsed = parseNames(studentsInput.value);
+        var target = c;
+        if (isNew) { target = blankClass(name); state.classes.push(target); state.activeId = target.id; }
+        target.name = name;
+        target.students = parsed.names;
+        keepOnly(target);
+        editing = false; creating = false; armedDelete = false;
+        save(); render();
+        if (parsed.dupes.length) showNotice("Doppelt und daher nur einmal übernommen: " + parsed.dupes.join(", ") + ". Bei gleichen Namen hilft ein Zusatz wie der Nachnamen-Anfangsbuchstabe.");
+      });
+      view.appendChild(form);
+      if (armedDelete) del.focus();
+      else if (isNew) nameInput.focus();
+    }
+
+    /* Abwesend, gezogen und zuletzt gezogen nur für Namen behalten, die noch in der Klasse sind. */
+    function keepOnly(c) {
+      var keep = function (s) { return c.students.indexOf(s) >= 0; };
+      c.absent = c.absent.filter(keep);
+      c.drawn = c.drawn.filter(keep);
+      c.last = (c.last || []).filter(keep);
+    }
+
+    function renderRoster(view, c) {
+      var wrap = document.createElement("div");
+      wrap.className = "lt-side";
+
+      var head = document.createElement("div");
+      head.className = "head-row";
+      var h = document.createElement("h2");
+      h.textContent = c.name;
+      var tally = document.createElement("span");
+      tally.className = "tally";
+      if (c.students.length) {
+        tally.textContent = present(c).length + " da";
+        if (c.absent.length) {
+          tally.appendChild(document.createTextNode(" · "));
+          var b = document.createElement("b");
+          b.textContent = c.absent.length + " fehl" + (c.absent.length === 1 ? "t" : "en");
+          tally.appendChild(b);
+        }
+      }
+      head.appendChild(h);
+      head.appendChild(tally);
+      wrap.appendChild(head);
+
+      if (c.name === "Beispielklasse") {
+        var ex = document.createElement("p");
+        ex.className = "hint";
+        ex.textContent = "Die Namen hier sind erfunden. Leg mit „+ Klasse“ deine eigene an und lösche diese danach.";
+        wrap.appendChild(ex);
+      }
+
+      if (!c.students.length) {
+        var hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent = "Noch keine Namen. Kopiere sie am besten aus der Klassenliste, einen pro Zeile.";
+        wrap.appendChild(hint);
+      } else {
+        var how = document.createElement("p");
+        how.className = "hint";
+        how.textContent = "Antippen, wer heute fehlt. Das gilt bis heute Abend, morgen sind wieder alle im Topf.";
+        wrap.appendChild(how);
+        var roster = document.createElement("div");
+        roster.className = "roster";
+        c.students.forEach(function (s) {
+          var isAbsent = c.absent.indexOf(s) >= 0;
+          var isNow = (c.last || []).indexOf(s) >= 0 && !isAbsent;
+          var isDone = c.drawn.indexOf(s) >= 0 && !isAbsent && !isNow;
+          var chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "kid" + (isAbsent ? " absent" : isNow ? " now" : isDone ? " done" : "");
+          chip.setAttribute("aria-pressed", String(isAbsent));
+          chip.setAttribute("aria-label", s + (isAbsent ? ", fehlt. Antippen: wieder anwesend" : ", anwesend. Antippen: fehlt heute"));
+          var n = document.createElement("span");
+          n.className = "name";
+          n.textContent = s;
+          chip.appendChild(n);
+          var label = isAbsent ? "fehlt" : isNow ? "dran" : isDone ? "war dran" : "";
+          if (label) {
+            var tag = document.createElement("span");
+            tag.className = "ktag";
+            tag.textContent = label;
+            chip.appendChild(tag);
+          }
+          chip.addEventListener("click", function () { toggleAbsent(s); });
+          roster.appendChild(chip);
+        });
+        wrap.appendChild(roster);
+      }
+
+      var row = document.createElement("div");
+      row.className = "row";
+      var edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = c.students.length ? "btn btn-ghost" : "btn";
+      edit.textContent = c.students.length ? "Namen bearbeiten" : "Namen eintragen";
+      edit.addEventListener("click", function () { editing = true; armedDelete = false; render(); });
+      row.appendChild(edit);
+      if (c.absent.length) {
+        var all = document.createElement("button");
+        all.type = "button";
+        all.className = "btn btn-ghost";
+        all.textContent = "Alle anwesend";
+        all.addEventListener("click", function () { c.absent = []; save(); render(); });
+        row.appendChild(all);
+      }
+      wrap.appendChild(row);
+      view.appendChild(wrap);
+    }
+
+    function renderClass() {
+      var view = $("class-view"), c = active();
+      view.textContent = "";
+      if (editing || creating) renderEditor(view, c);
+      else renderRoster(view, c);
+    }
+
+    function render() {
+      refreshDay(active());
+      renderTabs();
+      renderClass();
+      if (!rolling) renderStage();
+      renderControls();
+      $("storage-warning").hidden = storageOk;
+    }
+
+    function toggleAbsent(name) {
+      var c = active(), i = c.absent.indexOf(name);
+      if (i >= 0) c.absent.splice(i, 1);
+      else {
+        c.absent.push(name);
+        c.last = (c.last || []).filter(function (s) { return s !== name; });
+      }
+      save(); render();
+    }
+
+    function replaceAbsent(name) {
+      if (rolling) return;
+      var c = active();
+      c.absent.push(name);
+      c.drawn = c.drawn.filter(function (s) { return s !== name; });
+      var others = (c.last || []).filter(function (s) { return s !== name; });
+      var candidates = (state.noRepeat ? pool(c) : present(c)).filter(function (s) { return others.indexOf(s) < 0; });
+      if (!candidates.length) candidates = present(c).filter(function (s) { return others.indexOf(s) < 0; });
+      var next = pick(candidates, 1)[0];
+      var pos = (c.last || []).indexOf(name);
+      var last = (c.last || []).slice();
+      if (next) {
+        last[pos] = next;
+        if (state.noRepeat && c.drawn.indexOf(next) < 0) c.drawn.push(next);
+      } else last.splice(pos, 1);
+      c.last = last;
+      save(); render();
+      $("live").textContent = name + " fehlt. " + (next ? "Neu gezogen: " + next : "Niemand mehr im Topf.");
+    }
+
+    function reducedMotion() {
+      return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    function draw() {
+      var c = active(), n = present(c).length;
+      if (rolling || !n) return;
+      var k = Math.min(Math.max(1, state.count), n);
+      var res = drawFrom(c, k);
+      c.last = res.names;
+      save();
+
+      var finish = function () {
+        rolling = false;
+        render();
+        $("live").textContent = "Gezogen: " + res.names.join(", ");
+        if (res.newRound) showNotice("Alle waren dran. Eine neue Runde hat begonnen.");
+      };
+      if (reducedMotion()) { finish(); return; }
+
+      rolling = true;
+      renderTabs(); renderClass(); renderControls();
+      var stage = $("stage"), list = resultsList(res.names, false), everyone = present(c);
+      list.classList.add("rolling");
+      stage.textContent = "";
+      stage.appendChild(list);
+      var items = Array.prototype.slice.call(list.querySelectorAll("li"));
+      var whos = items.map(function (li) { return li.querySelector(".who"); });
+      var start = performance.now();
+      var step = Math.min(180, 900 / items.length);
+      var base = 650;
+      var lastTick = 0;
+      function frame(now) {
+        var t = now - start, open = 0;
+        var interval = 55 + Math.min(t / 12, 90);
+        var tick = now - lastTick >= interval;
+        if (tick) lastTick = now;
+        items.forEach(function (li, i) {
+          if (t >= base + i * step) {
+            if (!li.classList.contains("settled")) {
+              li.classList.add("settled");
+              whos[i].textContent = res.names[i];
+            }
+          } else {
+            open++;
+            if (tick) whos[i].textContent = everyone[randInt(everyone.length)];
+          }
+        });
+        if (open) requestAnimationFrame(frame);
+        else setTimeout(finish, 120);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    /* ---------- Export & Import ---------- */
+    function exportData(list) {
+      return {
+        format: FORMAT,
+        version: 1,
+        exportiert: today(),
+        klassen: list.map(function (c) {
+          return {
+            name: c.name,
+            namen: c.students.slice(),
+            fehlen: c.absent.slice(),
+            fehlenAm: c.absentDate,
+            warenDran: c.drawn.slice(),
+            zuletzt: (c.last || []).slice()
+          };
+        })
+      };
+    }
+    function safeFileName(s) {
+      return s.toLocaleLowerCase("de").replace(/[äöüß]/g, function (m) { return { "ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss" }[m]; })
+        .replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "klasse";
+    }
+    function download(data, fileName) {
+      var blob = new Blob([JSON.stringify(data, null, 2) + "\n"], { type: "application/json;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      showNotice("Die Datei " + fileName + " liegt in deinem Download-Ordner. Sie enthält Schülernamen, also bitte nur an sicheren Orten speichern.");
+    }
+    $("export-all").addEventListener("click", function () {
+      var own = state.classes.filter(function (c) { return c.name !== "Beispielklasse"; });
+      if (!own.length) { showNotice("Es gibt noch keine eigenen Klassen zum Exportieren."); return; }
+      download(exportData(own), "lostopf-klassen-" + today() + ".json");
+    });
+    $("export-one").addEventListener("click", function () {
+      var c = active();
+      download(exportData([c]), "lostopf-" + safeFileName(c.name) + "-" + today() + ".json");
+    });
+
+    function strings(a) {
+      return Array.isArray(a) ? a.filter(function (s) { return typeof s === "string"; }) : [];
+    }
+    /* Liefert eine Liste von Klassen {name, students, absent, absentDate, drawn, last} oder null. */
+    function parseImport(text) {
+      var t = text.replace(/^﻿/, "").trim();
+      if (t.charAt(0) === "{") {
+        var data;
+        try { data = JSON.parse(t); } catch (e) { return null; }
+        if (!data || data.format !== FORMAT || !Array.isArray(data.klassen)) return null;
+        return data.klassen.filter(function (k) {
+          return k && typeof k.name === "string" && k.name.trim();
+        }).map(function (k) {
+          return {
+            name: k.name.trim(),
+            students: parseNames(strings(k.namen).join("\n")).names,
+            absent: strings(k.fehlen),
+            absentDate: typeof k.fehlenAm === "string" ? k.fehlenAm : today(),
+            drawn: strings(k.warenDran),
+            last: strings(k.zuletzt)
+          };
+        });
+      }
+      /* Textformat: "# Klasse" und darunter ein Name pro Zeile */
+      var blocks = [], cur = null;
+      t.split(/\r?\n/).forEach(function (line) {
+        var s = line.trim();
+        if (!s) return;
+        if (s.charAt(0) === "#") { cur = { name: s.replace(/^#+\s*/, ""), lines: [] }; blocks.push(cur); }
+        else if (cur) cur.lines.push(s);
+      });
+      return blocks.filter(function (b) { return b.name; }).map(function (b) {
+        var c = blankClass(b.name, parseNames(b.lines.join("\n")).names);
+        return c;
+      });
+    }
+    function importClasses(list) {
+      /* Unveränderte Beispielklasse beim ersten Import entfernen */
+      if (state.classes.length === 1 && state.classes[0].name === "Beispielklasse") state.classes = [];
+      var firstId = null;
+      list.forEach(function (k) {
+        var target = state.classes.filter(function (c) { return c.name === k.name; })[0];
+        if (!target) { target = blankClass(k.name); state.classes.push(target); }
+        target.students = k.students;
+        target.absent = k.absent;
+        target.absentDate = k.absentDate;
+        target.drawn = k.drawn;
+        target.last = k.last;
+        keepOnly(target);
+        refreshDay(target);
+        if (!firstId) firstId = target.id;
+      });
+      if (firstId) state.activeId = firstId;
+      editing = false; creating = false; armedDelete = false;
+    }
+
+    $("file-open").addEventListener("click", function () { $("file-load").click(); });
+    $("file-load").addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onerror = function () { showNotice("Die Datei ließ sich nicht lesen. Versuch es noch einmal."); };
+      reader.onload = function () {
+        var list = parseImport(String(reader.result));
+        if (!list || !list.length) {
+          showNotice("In der Datei wurden keine Klassen gefunden. Nimm eine Datei, die hier exportiert wurde, oder eine Textdatei mit Zeilen wie „# 10a“.");
+          return;
+        }
+        importClasses(list);
+        save(); render();
+        showNotice(plural(list.length, "Klasse", "Klassen") + " importiert: " + list.map(function (k) { return k.name; }).join(", ") + ".");
+      };
+      reader.readAsText(file, "utf-8");
+    });
+
+    /* ---------- Bedienung ---------- */
+    $("draw").addEventListener("click", draw);
+    $("minus").addEventListener("click", function () { state.count = Math.max(1, Math.min(state.count, present(active()).length) - 1); save(); renderControls(); });
+    $("plus").addEventListener("click", function () { state.count = Math.min(present(active()).length, state.count + 1); save(); renderControls(); });
+    $("no-repeat").addEventListener("change", function (e) { state.noRepeat = e.target.checked; save(); render(); });
+    $("reset-round").addEventListener("click", function () {
+      var c = active(); c.drawn = []; c.last = []; save(); render();
+      showNotice("Neue Runde: alle Anwesenden sind wieder im Topf.");
+    });
+    var fsBtn = $("fullscreen"), board = $("board");
+    if (!board.requestFullscreen) fsBtn.hidden = true;
+    fsBtn.addEventListener("click", function () {
+      var p = document.fullscreenElement ? document.exitFullscreen() : board.requestFullscreen();
+      if (p && p.catch) p.catch(function () { fsBtn.hidden = true; });
+    });
+    document.addEventListener("fullscreenchange", function () {
+      fsBtn.textContent = document.fullscreenElement ? "Vollbild beenden" : "Vollbild";
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.code !== "Space" || e.repeat) return;
+      var t = e.target, tag = t && t.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON" || tag === "SUMMARY" || tag === "SELECT" || tag === "A") return;
+      e.preventDefault();
+      draw();
+    });
+
+    state.classes.forEach(refreshDay);
+    save();
+    render();
+  })();
+  </script>
+</body>
+</html>

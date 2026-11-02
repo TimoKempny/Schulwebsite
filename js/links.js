@@ -79,6 +79,14 @@ const EINTRAEGE = [
   },
   {
     typ: "tool",
+    titel: "Lostopf",
+    beschreibung: "Schülerinnen und Schüler zufällig auslosen – mit Abwesenheiten und ohne Wiederholung, die Namen bleiben im eigenen Browser",
+    url: "lostopf.html",
+    fach: ["Allgemein"],
+    neu: true
+  },
+  {
+    typ: "tool",
     titel: "PDF-Editor",
     beschreibung: "PDFs zusammenfügen, teilen, ordnen, schützen, unterschreiben und schwärzen – alles im Browser",
     url: "pdf-editor.html",
