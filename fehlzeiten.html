@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fehlzeiten &amp; Beurlaubung · Unterricht</title>
+  <meta name="description" content="Krankmeldung, Attest, verpasste Klassenarbeiten, Beurlaubung und Schulpflicht an der Ferdinand-von-Steinbeis-Schule – mit Muster-E-Mail.">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "hell") document.documentElement.setAttribute("data-theme", "light");
+      if (t === "dunkel") document.documentElement.setAttribute("data-theme", "dark");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    /* Warnfarbe für Hinweise, passend zu --bad/--bad-soft aus style.css */
+    .info-section { margin-top: 36px; scroll-margin-top: 80px; }
+    .stack { display: grid; gap: 16px; }
+    .panel > p { margin: 0; }
+    .lead { color: var(--muted); max-width: 72ch; margin: -4px 0 14px; }
+    .two { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+    @media (min-width: 860px) { .two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+    .small { font-size: .9rem; }
+    .muted { color: var(--muted); }
+    .hero-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    a.btn { text-decoration: none; display: inline-block; }
+    a.btn:hover { color: var(--on-accent); }
+    a.btn-ghost:hover { color: var(--text); }
+
+    /* Kernaussage */
+    .hero .merke { color: var(--text); max-width: 62ch; }
+    .merke {
+      background: var(--accent-soft); border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0; padding: 14px 18px; margin-top: 28px;
+      font-size: clamp(1.05rem, 1rem + .4vw, 1.2rem); font-weight: 600; line-height: 1.4;
+    }
+
+    /* Schritte als Zeitstrahl */
+    .etappen { list-style: none; counter-reset: schritt; margin: 0; padding: 0 0 0 2.6rem; position: relative; display: grid; gap: 18px; }
+    .etappen::before { content: ""; position: absolute; left: calc(.85rem - 1px); top: .9rem; bottom: .9rem; width: 2px; background: var(--border); }
+    .etappen > li { position: relative; counter-increment: schritt; }
+    .etappen > li::before {
+      content: counter(schritt); position: absolute; left: -2.6rem; top: -.1rem;
+      width: 1.7rem; height: 1.7rem; border-radius: 50%; display: grid; place-items: center;
+      background: var(--accent); color: var(--on-accent); font: 700 .85rem/1 var(--font-mono);
+    }
+    .etappen h3 { margin: 0 0 2px; font-size: 1.05rem; line-height: 1.35; }
+    .etappen p { margin: 0; color: var(--muted); }
+
+    /* Wer kommt in die Mail */
+    .rollen { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+    .rolle { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; gap: 3px; align-content: start; }
+    .rolle .feld { font: 700 .72rem var(--font-mono); color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
+    .rolle strong { font-size: 1rem; }
+    .rolle span.wann { font-size: .9rem; color: var(--muted); }
+    .rolle.immer { border-color: var(--accent); }
+
+    /* Warnkasten */
+    .achtung { background: var(--bad-soft); border-left: 4px solid var(--bad); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+    .achtung p { margin: 0; }
+    .achtung strong { color: var(--bad); }
+
+    /* Muster-E-Mail */
+    .muster { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .muster-kopf { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+    .muster-kopf .flabel { margin-right: auto; }
+    .muster pre { margin: 0; padding: 14px 16px; font: .88rem/1.65 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+    .muster pre .ph { color: var(--accent); }
+
+    /* Faktenliste */
+    .fakten { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; }
+    .fakten dt { font: 700 .85rem var(--font-mono); color: var(--accent); padding-top: 2px; white-space: nowrap; }
+    .fakten dd { margin: 0; }
+    @media (max-width: 560px) {
+      .fakten { grid-template-columns: 1fr; gap: 2px; }
+      .fakten dd { margin-bottom: 10px; }
+    }
+
+    .quelle { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: .88rem; max-width: 80ch; }
+    .quelle p { margin: 0 0 6px; }
+
+    @media print {
+      .hero-links, .muster-kopf .btn { display: none !important; }
+      .info-section { margin-top: 18px; break-inside: avoid-page; }
+      .panel { box-shadow: none; }
+      .merke, .achtung, .etappen > li::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container topbar">
+      <div class="brand"><a href="index.html" title="Zur Übersicht">~/<span>unterricht</span></a><span class="sep">/</span><span class="here">fehlzeiten</span></div>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Farbschema wechseln">theme: auto</button>
+    </div>
+    <div class="container hero">
+      <p class="kicker">info · alle klassen</p>
+      <h1>Fehlzeiten &amp; Beurlaubung</h1>
+      <p>Was du tun musst, wenn du krank bist, zu spät kommst, eine Klassenarbeit verpasst oder frei brauchst – nach den Regeln der Ferdinand-von-Steinbeis-Schule.</p>
+      <div class="hero-links">
+        <a class="btn btn-ghost" href="https://www.steinbeis.schule/files/content/Unterlagen/Kontakt/Mail-Liste.pdf" target="_blank" rel="noopener">Mail-Liste der Lehrkräfte ↗</a>
+        <a class="btn btn-ghost" href="https://www.steinbeis.schule/de/entschuldigungen.html" target="_blank" rel="noopener">Regeln auf der Schulseite ↗</a>
+        <button class="btn btn-ghost" type="button" onclick="window.print()">drucken</button>
+      </div>
+      <p class="merke">Du fehlst oder kommst zu spät? Dann schreibst du am selben Tag vor Unterrichtsbeginn eine E-Mail. Kein Papier, kein Umweg über Mitschüler.</p>
+    </div>
+  </header>
+
+  <nav class="ref-bar" aria-label="Abschnitte">
+    <div class="container toolbar">
+      <div class="chips">
+        <a class="chip" href="#krankmeldung">krankmeldung</a>
+        <a class="chip" href="#attest">attest</a>
+        <a class="chip" href="#klassenarbeit">klassenarbeit verpasst</a>
+        <a class="chip" href="#beurlaubung">beurlaubung</a>
+        <a class="chip" href="#schulpflicht">schulpflicht</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ================= 1. Krankmeldung ================= -->
+    <section class="container info-section" id="krankmeldung">
+      <div class="section-head"><h2>Krank, verspätet, früher weg</h2></div>
+      <p class="lead">Das gilt für jedes Fehlen: ganze Tage, einzelne Stunden, Zuspätkommen und früheres Gehen.</p>
+      <div class="stack">
+        <div class="panel">
+          <ol class="etappen">
+            <li>
+              <h3>Am ersten Tag, vor Unterrichtsbeginn</h3>
+              <p>Die Meldung geht am ersten Fehltag raus, bevor der Unterricht anfängt – nicht erst, wenn du wieder da bist. Kommst du zu spät oder musst du früher gehen, meldest du das genauso sofort.</p>
+            </li>
+            <li>
+              <h3>Nur per E-Mail</h3>
+              <p>Schreib möglichst von deiner Schul-Adresse. Eine Entschuldigung auf Papier ist nicht mehr nötig und auch nicht erwünscht.</p>
+            </li>
+            <li>
+              <h3>Das gehört hinein</h3>
+              <p>Klasse, Vor- und Nachname, der Grund und wie lange du voraussichtlich fehlst.</p>
+            </li>
+            <li>
+              <h3>Unter 18? Dann schreiben die Eltern</h3>
+              <p>Bei Minderjährigen schicken die Eltern oder Erziehungsberechtigten die Entschuldigung.</p>
+            </li>
+            <li>
+              <h3>Klappt es technisch nicht?</h3>
+              <p>Dann ruf im Sekretariat an. Das gilt auch für Ausnahmefälle.</p>
+            </li>
+          </ol>
+        </div>
+
+        <div class="panel stack">
+          <span class="flabel">wer in die e-mail gehört</span>
+          <div class="rollen">
+            <div class="rolle immer">
+              <span class="feld">an · immer</span>
+              <strong>Klassenlehrkraft</strong>
+              <span class="wann">Sie führt die Fehlzeiten deiner Klasse.</span>
+            </div>
+            <div class="rolle immer">
+              <span class="feld">cc · immer</span>
+              <strong>Lehrkraft der ersten Stunde</strong>
+              <span class="wann">Die Lehrkraft der ersten Stunde, die du verpasst.</span>
+            </div>
+            <div class="rolle">
+              <span class="feld">cc · bei klassenarbeit</span>
+              <strong>Fachlehrkraft</strong>
+              <span class="wann">Wenn an dem Tag eine Klassenarbeit, ein Test oder eine andere Leistungsfeststellung ansteht.</span>
+            </div>
+            <div class="rolle">
+              <span class="feld">cc · berufsschule</span>
+              <strong>Ausbilder oder Betrieb</strong>
+              <span class="wann">In der Berufsschule (auch 1-jährige Berufsfachschule) muss dein Betrieb immer mit in CC.</span>
+            </div>
+          </div>
+          <p class="small muted">Die Adressen aller Lehrkräfte stehen in der <a href="https://www.steinbeis.schule/files/content/Unterlagen/Kontakt/Mail-Liste.pdf" target="_blank" rel="noopener">Mail-Liste der Schule</a>. Schema: vorname.nachname@steinbeis.schule</p>
+          <div class="achtung">
+            <p><strong>Wichtig:</strong> Kommt die E-Mail zu spät, fehlt jemand aus der Liste oder meldest du dich gar nicht, kann dein Fehlen als <strong>unentschuldigt</strong> gelten. Eine Nachricht über Mitschüler oder eine mündliche Info reicht nicht.</p>
+          </div>
+        </div>
+
+        <div class="panel stack">
+          <div class="muster">
+            <div class="muster-kopf">
+              <span class="flabel">muster-e-mail</span>
+              <button class="btn btn-ghost" type="button" id="btn-kopieren">kopieren</button>
+              <a class="btn" id="btn-mail" href="#">im mailprogramm öffnen</a>
+            </div>
+<pre id="muster">An:      <span class="ph">klassenlehrkraft</span>@steinbeis.schule
+CC:      <span class="ph">lehrkraft.erste.stunde</span>@steinbeis.schule, <span class="ph">ausbilder@betrieb.de</span>
+Betreff: Abwesenheitsmeldung – <span class="ph">Max Mustermann</span>, <span class="ph">2BKI1</span>, <span class="ph" data-heute>TT.MM.JJJJ</span>
+
+Guten Morgen <span class="ph">Frau/Herr …</span>,
+
+ich bin heute, am <span class="ph" data-heute>TT.MM.JJJJ</span>, krank und kann nicht am
+Unterricht teilnehmen. Voraussichtlich fehle ich bis
+einschließlich <span class="ph">Datum</span>. Sollte es länger dauern, melde ich mich erneut.
+
+Heute ist keine Klassenarbeit angesetzt.
+
+Viele Grüße
+<span class="ph">Max Mustermann</span>
+Klasse <span class="ph">2BKI1</span></pre>
+          </div>
+          <p class="small muted">Farbige Stellen anpassen. Steht an dem Tag eine Klassenarbeit an, schreib das ausdrücklich hinein und nimm die Fachlehrkraft mit in CC. Ohne Ausbildung fällt der Betrieb im CC weg.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 2. Attest ================= -->
+    <section class="container info-section" id="attest">
+      <div class="section-head"><h2>Ärztliches Attest</h2></div>
+      <p class="lead">Normalerweise reicht deine E-Mail. In diesen Fällen kann zusätzlich ein Attest verlangt werden:</p>
+      <div class="panel">
+        <dl class="fakten">
+          <dt>Vollzeitklassen</dt>
+          <dd>Wer länger als <b>10 Schultage</b> krank ist, kann von der Klassenlehrkraft zu einem ärztlichen Attest verpflichtet werden.</dd>
+          <dt>Teilzeitklassen</dt>
+          <dd>In der Berufsschule schon ab mehr als <b>3 Schultagen</b>.</dd>
+          <dt>Häufiges Fehlen</dt>
+          <dd>Bei häufigen Krankmeldungen kann die Schulleitung für das restliche Schuljahr bei jeder Krankheit ein ärztliches oder amtsärztliches Attest verlangen.</dd>
+          <dt>Prüfungen</dt>
+          <dd>Wer eine <b>Prüfung</b> verpasst, braucht <b>immer</b> ein ärztliches Attest.</dd>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ================= 3. Klassenarbeit verpasst ================= -->
+    <section class="container info-section" id="klassenarbeit">
+      <div class="section-head"><h2>Klassenarbeit verpasst</h2></div>
+      <div class="two">
+        <div class="panel stack">
+          <span class="flabel">entschuldigt gefehlt</span>
+          <p>Melde dich <b>gleich nach deiner Rückkehr</b> bei der Fachlehrkraft. Sie entscheidet, ob und wann du nachschreibst. Statt einer schriftlichen Arbeit ist auch eine mündliche Prüfung möglich.</p>
+          <p class="small muted">Nachschreibtermine findest du auf der Schulseite unter <a href="https://www.steinbeis.schule/de/fuer-schueler.html" target="_blank" rel="noopener">für Schülerinnen und Schüler</a>.</p>
+        </div>
+        <div class="panel stack">
+          <span class="flabel">unentschuldigt gefehlt</span>
+          <div class="achtung">
+            <p>Eine verpasste Klassenarbeit oder ein verpasster Test wird mit der <strong>Note 6</strong> bewertet.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 4. Beurlaubung ================= -->
+    <section class="container info-section" id="beurlaubung">
+      <div class="section-head"><h2>Beurlaubung</h2></div>
+      <p class="lead">Eine Beurlaubung ist ein Antrag, keine Mitteilung. Sie gilt erst, wenn sie genehmigt ist, und kann auch abgelehnt werden.</p>
+      <div class="stack">
+        <div class="panel">
+          <dl class="fakten">
+            <dt>Vorher</dt>
+            <dd>Den Antrag rechtzeitig <b>vor</b> dem Termin stellen. Nachträglich geht nicht.</dd>
+            <dt>Schriftlich</dt>
+            <dd>Schriftlich und mit Begründung, nicht mündlich zwischen Tür und Angel. Bis zur Genehmigung nichts fest buchen oder zusagen.</dd>
+            <dt>Bis 2 Tage</dt>
+            <dd>Entscheidet die <b>Klassenlehrkraft</b>.</dd>
+            <dt>Mehr als 2 Tage</dt>
+            <dd>Entscheidet die <b>Schulleitung</b>.</dd>
+            <dt>Rund um Ferien</dt>
+            <dd>Direkt vor oder nach den Ferien gibt es grundsätzlich keine Beurlaubung.</dd>
+            <dt>Planbare Termine</dt>
+            <dd>Fahrstunden, Arzttermine und Ähnliches legst du außerhalb der Unterrichtszeit. Geht das nicht, sprich es vorher mit der Klassenlehrkraft ab, und mit der Fachlehrkraft, falls an dem Tag eine Klassenarbeit ansteht.</dd>
+          </dl>
+        </div>
+        <div class="achtung">
+          <p>Ein genehmigter Urlaub im Betrieb ist <strong>keine</strong> Beurlaubung von der Schule. Der Betrieb kann dich nicht vom Berufsschulunterricht befreien – das entscheidet nur die Schule.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 5. Schulpflicht ================= -->
+    <section class="container info-section" id="schulpflicht">
+      <div class="section-head"><h2>Schulpflicht</h2></div>
+      <p class="lead">Der Unterricht ist kein Angebot, das man wahrnehmen kann – er ist Pflicht.</p>
+      <div class="panel">
+        <dl class="fakten">
+          <dt>Alle</dt>
+          <dd>Alle Schülerinnen und Schüler müssen regelmäßig am Unterricht teilnehmen und Fehlen rechtzeitig entschuldigen.</dd>
+          <dt>In Ausbildung</dt>
+          <dd>Wer einen Ausbildungsvertrag hat, ist für die Dauer der Ausbildung berufsschulpflichtig (Schulgesetz Baden-Württemberg, §§ 77 ff.).</dd>
+          <dt>Betrieb</dt>
+          <dd>Dein Ausbildungsbetrieb muss dich für den Berufsschulunterricht freistellen (§ 15 Berufsbildungsgesetz).</dd>
+          <dt>Folgen</dt>
+          <dd>Fehlzeiten werden erfasst. Unentschuldigtes Fehlen bekommt dein Betrieb mit, und es kann als Ordnungswidrigkeit geahndet werden.</dd>
+        </dl>
+      </div>
+
+      <div class="quelle">
+        <p>Stand: November 2026. Grundlage sind die Regeln der Ferdinand-von-Steinbeis-Schule auf der Seite
+           <a href="https://www.steinbeis.schule/de/entschuldigungen.html" target="_blank" rel="noopener">Entschuldigungen</a>,
+           die Schulbesuchsverordnung Baden-Württemberg (§ 2 Verhinderung der Teilnahme, § 4 Beurlaubung), das Schulgesetz für Baden-Württemberg (§§ 77 ff.) und das Berufsbildungsgesetz (§ 15).</p>
+        <p>Im Zweifel gilt, was auf der Schulseite steht.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="mono">© 2026</span>
+      <nav>
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var muster = document.getElementById("muster");
+
+    // Heutiges Datum in die Muster-Mail
+    var d = new Date(), heute = ("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." + d.getFullYear();
+    muster.querySelectorAll("[data-heute]").forEach(function (el) { el.textContent = heute; });
+
+    // Mailprogramm mit vorausgefüllter Mail öffnen (An/CC/Betreff/Text aus dem Muster)
+    function teile() {
+      var zeilen = muster.textContent.split("\n"), kopf = {}, i = 0;
+      for (; i < zeilen.length && zeilen[i].trim(); i++) {
+        var m = /^(An|CC|Betreff):\s*(.*)$/.exec(zeilen[i]);
+        if (m) kopf[m[1]] = m[2].trim();
+      }
+      return { an: kopf.An || "", cc: kopf.CC || "", betreff: kopf.Betreff || "", text: zeilen.slice(i + 1).join("\n") };
+    }
+    var t = teile();
+    document.getElementById("btn-mail").href = "mailto:" + t.an.replace(/\s+/g, "") +
+      "?cc=" + encodeURIComponent(t.cc.replace(/\s+/g, "")) +
+      "&subject=" + encodeURIComponent(t.betreff) +
+      "&body=" + encodeURIComponent(t.text);
+
+    // Kopieren
+    document.getElementById("btn-kopieren").addEventListener("click", function () {
+      var btn = this;
+      function fertig(txt) { btn.textContent = txt; setTimeout(function () { btn.textContent = "kopieren"; }, 2500); }
+      function markieren() {
+        var r = document.createRange(); r.selectNodeContents(muster);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        fertig("markiert – strg+c");
+      }
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(muster.textContent).then(function () { fertig("kopiert ✓"); }, markieren);
+      } else markieren();
+    });
+  })();
+  </script>
+</body>
+</html>

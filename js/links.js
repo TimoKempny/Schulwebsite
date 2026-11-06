@@ -3,7 +3,7 @@
    Nur diese Datei muss für neue Tools/Seiten geändert werden.
 
    Felder pro Eintrag:
-     typ          "tool" | "skript" | "quiz" | "materialien" | "link"   (Pflicht)
+     typ          "tool" | "skript" | "quiz" | "materialien" | "info" | "link"   (Pflicht)
      titel        Text auf der Kachel                   (Pflicht)
      url          Pfad zur Seite (z. B. "tools/timer.html")
                   oder volle Adresse ("https://...")    (Pflicht)
@@ -22,6 +22,7 @@ const TYPEN = [
   { id: "skript", titel: "Skripte" },
   { id: "quiz",   titel: "Quizze & Übungen" },
   { id: "materialien", titel: "Materialien" },
+  { id: "info",   titel: "Infos & Organisation" },
   { id: "link",   titel: "Links" }
 ];
 
@@ -111,9 +112,18 @@ const EINTRAEGE = [
   {
     typ: "tool",
     titel: "IPv4 & Subnetze",
-    beschreibung: "IP-Adressen, Subnetzmasken und Subnetting verstehen und üben",
+    beschreibung: "IP-Adressen, Subnetzmasken, Subnetting und VLSM verstehen und üben",
     url: "ipv4.html",
     fach: ["ITS"]
+  },
+  // ---------- Infos & Organisation ----------
+  {
+    typ: "info",
+    titel: "Fehlzeiten & Beurlaubung",
+    beschreibung: "Krank oder verspätet? Wer die E-Mail bekommt, wann ein Attest nötig ist, was bei verpassten Klassenarbeiten gilt – mit Muster-E-Mail",
+    url: "fehlzeiten.html",
+    fach: ["Allgemein"],
+    neu: "2026-11-06"
   },
   {
     typ: "link",

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IPv4 &amp; Subnetze · Unterricht</title>
-  <meta name="description" content="IPv4-Adressen, Subnetzmasken, CIDR und Subnetting Schritt für Schritt verstehen und mit Zufallsaufgaben üben.">
+  <meta name="description" content="IPv4-Adressen, Subnetzmasken, CIDR, Subnetting und VLSM Schritt für Schritt verstehen und mit Zufallsaufgaben üben.">
   <script>
     try {
       var t = localStorage.getItem("theme");
@@ -222,13 +222,63 @@
     .history i.ok { background: var(--ok); }
     .history-empty { font-size: .8rem; color: var(--muted); }
 
+    /* ---------- VLSM ---------- */
+    #needsInp { width: 360px; max-width: 62vw; }
+    .vsteps { margin: 0; padding-left: 1.3rem; display: grid; gap: 4px; }
+    .vtbl { border-collapse: collapse; font-family: var(--font-mono); font-size: .86rem; min-width: 100%; }
+    .vtbl th { text-align: left; font-size: .72rem; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .vtbl td { padding: 6px 8px; border-bottom: 1px dashed var(--border); white-space: nowrap; }
+    .vtbl td.nm { font-family: var(--font-sans); }
+    .vtbl td.hi { color: var(--accent); font-weight: 700; }
+    .vtbl td.dim { color: var(--muted); }
+    .vtbl .new { animation: slideIn .35s ease both; }
+    .vnr {
+      display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; margin-right: 6px;
+      border-radius: 5px; background: var(--accent); color: var(--on-accent); font: 700 .72rem/1 var(--font-mono);
+    }
+    .vbar-wrap { display: grid; gap: 6px; animation: slideIn .4s ease both; }
+    .vbar { display: flex; width: 100%; height: 34px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); background: var(--surface-2); }
+    .vseg { position: relative; display: flex; min-width: 0; border-right: 2px solid var(--bg); }
+    .vseg .vu { background: var(--accent); }
+    .vseg .vw { flex: 1 1 0; background: var(--host-soft); }
+    .vseg .vl { position: absolute; left: 5px; top: 50%; transform: translateY(-50%); font: 700 .72rem var(--font-mono); color: var(--on-accent); }
+    .vfree { min-width: 0; }
+    .vscale { display: flex; justify-content: space-between; gap: 10px; font: .72rem var(--font-mono); color: var(--muted); }
+    .legend .lu { background: var(--accent); }
+    .legend .lw { background: var(--host-soft); box-shadow: inset 0 0 0 1px var(--host); }
+    .legend .lf { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
+
+    /* Übungstabelle zum Ausfüllen */
+    @media (min-width: 860px) { .pr-grid.wide { grid-template-columns: minmax(0, 1fr); } }
+    .pr-grid.wide .stat-grid { grid-template-columns: repeat(4, 1fr); }
+    .vform { display: grid; gap: 12px; }
+    .vtask { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: .88rem; }
+    .vtask th { text-align: left; font-size: .72rem; color: var(--muted); font-weight: 600; padding: 6px 5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .vtask td { padding: 6px 5px; border-bottom: 1px dashed var(--border); white-space: nowrap; }
+    .vtask td.nm { font-family: var(--font-sans); font-weight: 600; }
+    .vtask td.hi { color: var(--accent); font-weight: 700; }
+    .vtask .inp { width: 100%; min-width: 64px; padding: 7px 8px; font-size: .9rem; }
+    .vtask td.f-np .inp { width: 70px; }
+    .vtask td.f-ip { min-width: 140px; }
+    .vtask .inp.ok { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft); }
+    .vtask .inp[readonly] { background: var(--surface-2); }
+    @media (max-width: 760px) {
+      .vtask thead { display: none; }
+      .vtask, .vtask tbody { display: block; width: 100%; }
+      .vtask tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+      .vtask td { display: block; border: 0; padding: 0; min-width: 0 !important; }
+      .vtask td.nm { grid-column: 1 / -1; }
+      .vtask td.f-np .inp { width: 100%; }
+      .vtask td[data-label]::before { content: attr(data-label); display: block; font: .7rem var(--font-mono); color: var(--muted); margin-bottom: 2px; }
+    }
+
     /* ---------- Animationen ---------- */
     @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
     @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
     @keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
     @media (max-width: 520px) { .stage { padding: 16px 10px; } }
     @media (prefers-reduced-motion: reduce) {
-      .stage *, .task *, .feedback, .facts { animation: none !important; }
+      .stage *, .task *, .feedback, .facts, .vbar-wrap { animation: none !important; }
     }
   </style>
 </head>
@@ -242,7 +292,7 @@
     <div class="container hero">
       <p class="kicker">tool · netzwerktechnik</p>
       <h1>IPv4 &amp; Subnetze</h1>
-      <p>IP-Adressen, Subnetzmasken und Subnetting verstehen: Netzadresse, Broadcast und Hostbereich Schritt für Schritt berechnen und danach mit Zufallsaufgaben üben.</p>
+      <p>IP-Adressen, Subnetzmasken und Subnetting verstehen: Netzadresse, Broadcast und Hostbereich Schritt für Schritt berechnen, Netze mit VLSM nach Bedarf aufteilen und danach mit Zufallsaufgaben üben.</p>
     </div>
   </header>
 
@@ -336,6 +386,23 @@
              <code>192.168.1.10/24</code> und <code>192.168.2.10/24</code> → Netze 192.168.1.0 und 192.168.2.0 → über den Router.
              Achtung bei kleineren Netzen: <code>10.0.0.60/26</code> und <code>10.0.0.70/26</code> liegen in <b>verschiedenen</b> Netzen (10.0.0.0 und 10.0.0.64).</p>
         </div>
+
+        <div class="panel idee">
+          <span class="flabel">vlsm – subnetze nach bedarf</span>
+          <p>Beim normalen Subnetting sind alle Subnetze <b>gleich groß</b>. Braucht ein Standort 100 Adressen und ein anderer nur 5, wird so viel verschwendet.
+             Bei <b>VLSM</b> (Variable Length Subnet Mask) bekommt jedes Subnetz ein <b>eigenes Präfix</b> – nur so groß wie nötig. Der Rest des Netzes bleibt frei für später.</p>
+          <ol class="vsteps">
+            <li>Die Subnetze nach Bedarf <b>sortieren</b>, das größte zuerst.</li>
+            <li>Benötigte Hosts <b>+ 2</b> rechnen (Netz- und Broadcastadresse).</li>
+            <li>Auf die nächste <b>Zweierpotenz</b> aufrunden = Blockgröße. Der Exponent ist die Zahl der Hostbits, <b>Präfix = 32 − Hostbits</b>.</li>
+            <li>Das erste Subnetz beginnt an der Netzadresse des Ausgangsnetzes. Broadcast = Netzadresse + Blockgröße − 1, die Hosts liegen dazwischen.</li>
+            <li>Das nächste Subnetz beginnt <b>direkt nach dem Broadcast</b> des vorherigen. Weil die Blöcke absteigend sortiert sind, liegt jedes an einer passenden Grenze.</li>
+          </ol>
+          <p class="small"><code>192.168.1.0/24</code>, Bedarf 50 und 20 Hosts:
+             50 + 2 = 52 → 64 → <code>/26</code> = 192.168.1.0 – .63 ·
+             20 + 2 = 22 → 32 → <code>/27</code> = 192.168.1.64 – .95 ·
+             frei ab 192.168.1.96.</p>
+        </div>
       </div>
     </section>
 
@@ -356,12 +423,17 @@
             <span>teilen in</span>
             <input class="inp" id="countInp" type="number" min="2" max="64" value="4" inputmode="numeric" aria-label="Anzahl Subnetze">
           </label>
+          <label class="numbox" id="needsBox" hidden>
+            <span>bedarf</span>
+            <input class="inp" id="needsInp" spellcheck="false" autocomplete="off" aria-label="Benötigte Hosts je Subnetz, z. B. Reutlingen 50, Ulm 20" title="Name und Anzahl Hosts, durch Komma getrennt (max. 8), z. B. Reutlingen 50, Ulm 20">
+          </label>
           <button class="btn btn-ghost" type="button" id="exRandom">zufällig</button>
         </div>
         <div class="chips" id="modeChips" role="group" aria-label="Rechenweg">
           <button class="chip" type="button" data-mode="bit" aria-pressed="true">bitweise (UND)</button>
           <button class="chip" type="button" data-mode="block" aria-pressed="false">schnellweg (blockgröße)</button>
           <button class="chip" type="button" data-mode="sub" aria-pressed="false">subnetze bilden</button>
+          <button class="chip" type="button" data-mode="vlsm" aria-pressed="false">vlsm (nach bedarf)</button>
         </div>
 
         <div class="stage" id="stage"></div>
@@ -391,6 +463,7 @@
             <button class="chip" type="button" data-type="same">gleiches netz?</button>
             <button class="chip" type="button" data-type="priv">privat?</button>
             <button class="chip" type="button" data-type="sub">subnetting</button>
+            <button class="chip" type="button" data-type="vlsm">vlsm</button>
             <button class="chip" type="button" data-type="mix">gemischt</button>
           </div>
         </div>
@@ -404,7 +477,7 @@
         </div>
       </div>
 
-      <div class="pr-grid">
+      <div class="pr-grid" id="prGrid">
         <div class="panel task">
           <span class="flabel" id="taskQ">aufgabe</span>
           <div class="task-num" id="taskNum"></div>
@@ -415,6 +488,13 @@
             <button class="btn" type="submit" id="checkBtn">prüfen</button>
           </form>
           <div class="choices" id="choices" hidden></div>
+          <form class="vform" id="vlsmForm" autocomplete="off" novalidate hidden>
+            <div class="tscroll"><table class="vtask" id="vlsmTbl"></table></div>
+            <div class="row">
+              <button class="btn" type="submit" id="vlsmCheck">prüfen</button>
+              <span class="small muted">Präfix als /26 oder 26 · Adressen ohne Präfix</span>
+            </div>
+          </form>
           <div class="feedback" id="feedback" role="status" aria-live="polite" hidden></div>
           <div class="row">
             <button class="btn btn-ghost" type="button" id="solveBtn">Lösung zeigen</button>
@@ -489,6 +569,104 @@
       return { io: io, r: r, mo: mo, B: 256 - mo };
     }
     var ORD = ["1.", "2.", "3.", "4."];
+    function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+    /* ---------- VLSM: Subnetze nach Bedarf ---------- */
+    var ORTE = ["Reutlingen", "Stuttgart", "Tübingen", "Ulm", "Karlsruhe", "Heilbronn", "Esslingen", "Freiburg", "Konstanz",
+                "Pforzheim", "Mannheim", "Heidelberg", "Ludwigsburg", "Aalen", "Sigmaringen", "Böblingen", "Metzingen", "Balingen"];
+    // kleinste Zahl Hostbits, mit der h Hosts Platz haben (mindestens 2 → /30)
+    function hostBitsFor(h) { var b = 2; while (Math.pow(2, b) - 2 < h) b++; return b; }
+    // Standardverfahren: absteigend sortieren, lückenlos ab der Netzadresse vergeben
+    function vlsmPlan(base, p, needs) {
+      var list = needs.map(function (n, i) {
+        var hb = hostBitsFor(n.hosts);
+        return { name: n.name, hosts: n.hosts, idx: i, hb: hb, size: Math.pow(2, hb), np: 32 - hb };
+      });
+      list.sort(function (a, b) { return b.hosts - a.hosts || a.idx - b.idx; });
+      var cur = base, waste = 0;
+      list.forEach(function (s, k) {
+        s.nr = k + 1; s.nid = cur; s.first = cur + 1; s.bc = cur + s.size - 1; s.last = s.bc - 1;
+        s.waste = s.size - 2 - s.hosts; waste += s.waste; cur += s.size;
+      });
+      var total = Math.pow(2, 32 - p), used = cur - base, byIdx = [];
+      list.forEach(function (s) { byIdx[s.idx] = s; });
+      return { base: base, p: p, total: total, list: list, byIdx: byIdx, used: used, waste: waste, free: total - used, fits: used <= total };
+    }
+    // "Reutlingen 50, Ulm 20" oder "50, 20, 10" → [{name, hosts}]
+    function parseNeeds(s) {
+      var parts = s.split(/[,;\n]+/).map(function (x) { return x.trim(); }).filter(Boolean), out = [];
+      if (!parts.length || parts.length > 8) return null;
+      for (var i = 0; i < parts.length; i++) {
+        var m = /^(.*?)[\s:=]*(\d{1,7})$/.exec(parts[i]);
+        if (!m || +m[2] < 1) return null;
+        out.push({ name: m[1].trim().slice(0, 24) || "Netz " + "ABCDEFGH"[i], hosts: +m[2] });
+      }
+      return out;
+    }
+    function needsToStr(needs) { return needs.map(function (n) { return n.name + " " + n.hosts; }).join(", "); }
+    // Zufallsaufgabe: Blockgrößen so wählen, dass alles passt, dann den Bedarf so, dass genau diese Blockgröße nötig ist
+    function genVlsmData(lvl) {
+      var bp, base, n, minE, exps = [];
+      if (lvl === 3) {
+        bp = pick([22, 23]); n = rnd(4, 6); minE = 2;
+        base = netOf(ipToInt(pick(["10." + rnd(0, 255) + "." + rnd(0, 255), "172." + rnd(16, 31) + "." + rnd(0, 255)]) + ".0"), bp);
+      } else {
+        bp = 24; n = lvl === 1 ? 3 : rnd(3, 5); minE = lvl === 1 ? 3 : 2;
+        base = ipToInt(pick(["192.168." + rnd(0, 255), "192.168." + rnd(0, 255), "10." + rnd(0, 255) + "." + rnd(0, 255), "172." + rnd(16, 31) + "." + rnd(0, 255)]) + ".0");
+      }
+      var total = Math.pow(2, 32 - bp), rest = total;
+      if (lvl === 1) {
+        var pool = [3, 4, 5, 6];
+        while (exps.length < n) { var e1 = pick(pool); pool.splice(pool.indexOf(e1), 1); exps.push(e1); }
+      } else {
+        for (var i = 0; i < n; i++) {
+          var maxS = Math.min(total / 2, rest - (n - i - 1) * Math.pow(2, minE)), maxE = minE;
+          while (Math.pow(2, maxE + 1) <= maxS) maxE++;
+          var e = rnd(minE, maxE); exps.push(e); rest -= Math.pow(2, e);
+        }
+      }
+      var names = ORTE.slice(), needs = exps.map(function (e) {
+        var S = Math.pow(2, e), nm = names.splice(Math.floor(Math.random() * names.length), 1)[0];
+        return { name: nm, hosts: rnd(Math.max(1, S / 2 - 1), S - 2) };
+      });
+      needs.sort(function (a, b) { return a.name.localeCompare(b.name, "de"); });
+      return { base: base, bp: bp, needs: needs };
+    }
+    function vlsmBar(pl) {
+      var h = '<div class="vbar-wrap"><div class="vbar" role="img" aria-label="Belegung des Netzes">';
+      pl.list.forEach(function (s) {
+        h += '<div class="vseg" style="flex:' + s.size + ' 0 0" title="' + esc(s.name) + ': ' + s.hosts + ' von ' + (s.size - 2) + ' Hosts genutzt (/' + s.np + ')">' +
+             '<span class="vu" style="width:' + ((s.hosts + 2) / s.size * 100).toFixed(2) + '%"></span><span class="vw"></span>' +
+             (s.size / pl.total >= 0.045 ? '<span class="vl">' + s.nr + '</span>' : '') + '</div>';
+      });
+      if (pl.free > 0) h += '<div class="vfree" style="flex:' + pl.free + ' 0 0" title="frei: ' + fmt(pl.free) + ' Adressen"></div>';
+      h += '</div><div class="vscale"><span>' + intToIp(pl.base) + '</span><span>' + intToIp(pl.base + pl.total - 1) + '</span></div>';
+      return h + '<div class="legend"><span><i class="lu"></i>benötigt (inkl. netz + broadcast)</span><span><i class="lw"></i>ungenutzt im subnetz</span><span><i class="lf"></i>frei für weitere subnetze</span></div></div>';
+    }
+    function vlsmFacts(pl) {
+      return '<div class="facts">' +
+        '<div class="fact"><span>belegt</span><b>' + fmt(pl.used) + ' / ' + fmt(pl.total) + '</b></div>' +
+        '<div class="fact"><span>ungenutzt in subnetzen</span><b>' + fmt(pl.waste) + '</b></div>' +
+        '<div class="fact key"><span>frei</span><b>' + fmt(pl.free) + '</b></div>' +
+        (pl.free > 0 ? '<div class="fact key"><span>nächstes freies subnetz ab</span><b>' + intToIp(pl.base + pl.used) + '</b></div>' : '') +
+        '</div>';
+    }
+    function vlsmTable(pl, s, nameOrder) {
+      var rows = nameOrder ? pl.byIdx : pl.list, h = '<div class="tscroll"><table class="vtbl"><thead><tr>';
+      h += (s >= 1 ? '<th>nr</th>' : '') + '<th>standort</th><th>hosts</th>';
+      if (s >= 2) h += '<th>+ 2</th><th>blockgröße</th><th>präfix</th><th>nutzbar</th>';
+      if (s >= 3) h += '<th>netzadresse</th><th>erster host</th><th>letzter host</th><th>broadcast</th>';
+      h += '</tr></thead><tbody>';
+      rows.forEach(function (r, k) {
+        h += '<tr>' + (s >= 1 ? '<td><span class="vnr">' + r.nr + '</span></td>' : '') + '<td class="nm">' + esc(r.name) + '</td><td>' + r.hosts + '</td>';
+        if (s >= 2) h += '<td class="dim' + (s === 2 ? ' new' : '') + '">' + (r.hosts + 2) + '</td><td class="' + (s === 2 ? 'new' : '') + '">' + pow2(r.hb) + ' = ' + r.size +
+                         '</td><td class="hi' + (s === 2 ? ' new' : '') + '">/' + r.np + '</td><td class="dim' + (s === 2 ? ' new' : '') + '">' + (r.size - 2) + '</td>';
+        if (s >= 3) h += '<td class="hi' + (s === 3 ? ' new' : '') + '">' + intToIp(r.nid) + '</td><td class="' + (s === 3 ? 'new' : '') + '">' + intToIp(r.first) + '</td><td class="' + (s === 3 ? 'new' : '') + '">' +
+                         intToIp(r.last) + '</td><td class="' + (s === 3 ? 'new' : '') + '">' + intToIp(r.bc) + '</td>';
+        h += '</tr>';
+      });
+      return h + '</tbody></table></div>';
+    }
 
     /* ---------- Bausteine ---------- */
     function bitRow(label, n, o) {
@@ -541,8 +719,10 @@
     /* =========================================================
        Erklärteil
        ========================================================= */
-    var ex = { ip: ipToInt("192.168.10.37"), p: 26, mode: "bit", count: 4, step: 0, timer: null };
-    var stage = $("stage"), caption = $("caption"), ipInp = $("ipInp"), pRange = $("pRange"), countInp = $("countInp");
+    var ex = { ip: ipToInt("192.168.10.37"), p: 26, mode: "bit", count: 4, step: 0, timer: null,
+               needs: parseNeeds("Reutlingen 50, Stuttgart 26, Tübingen 12, Ulm 2") };
+    var stage = $("stage"), caption = $("caption"), ipInp = $("ipInp"), pRange = $("pRange"), countInp = $("countInp"), needsInp = $("needsInp");
+    needsInp.value = needsToStr(ex.needs);
 
     function subInfo() {
       var n = 0; while (Math.pow(2, n) < ex.count) n++;
@@ -551,6 +731,7 @@
     function totalSteps() {
       if (ex.mode === "bit") return 4;
       if (ex.mode === "block") return ex.p % 8 ? 4 : 2;
+      if (ex.mode === "vlsm") return vlsmPlan(netOf(ex.ip, ex.p), ex.p, ex.needs).fits ? 4 : 0;
       var si = subInfo();
       return si.np > 30 || ex.count < 2 ? 0 : 4;
     }
@@ -698,11 +879,38 @@
       caption.innerHTML = c;
     }
 
+    /* --- VLSM --- */
+    function renderVlsm(s) {
+      var base = netOf(ex.ip, ex.p), pl = vlsmPlan(base, ex.p, ex.needs), c;
+      var head = '<span class="nlabel">ausgangsnetz <b>' + intToIp(base) + '/' + ex.p + '</b> · ' + fmt(pl.total) + ' adressen</span>';
+      if (!pl.fits) {
+        stage.innerHTML = head + vlsmTable(pl, 2, false) +
+          '<p class="warn">Passt nicht: Die Subnetze brauchen zusammen ' + fmt(pl.used) + ' Adressen, das Netz /' + ex.p + ' hat nur ' + fmt(pl.total) + '.</p>';
+        caption.innerHTML = "Wähle ein kleineres Präfix (größeres Ausgangsnetz) oder weniger Hosts.";
+        return;
+      }
+      var h = head + vlsmTable(pl, s, s === 0);
+      if (s >= 4) h += vlsmBar(pl) + vlsmFacts(pl);
+      stage.innerHTML = h;
+      var f = pl.list[0];
+      if (s === 0) c = "Das Netz <b>" + intToIp(base) + "/" + ex.p + "</b> soll auf <b>" + pl.list.length + "</b> Standorte verteilt werden, die unterschiedlich viele Hosts brauchen. " +
+                       "Gleich große Subnetze würden Adressen verschwenden. Mit <b>VLSM</b> bekommt jedes Subnetz ein eigenes Präfix – so groß wie nötig.";
+      else if (s === 1) c = "<b>Sortieren</b>: größter Bedarf zuerst. Dann liegt jedes Subnetz automatisch an einer passenden Grenze und es entstehen keine Lücken.";
+      else if (s === 2) c = "<b>Blockgröße</b>: Hosts + 2 (Netz- und Broadcastadresse), dann auf die nächste Zweierpotenz aufrunden. " + esc(f.name) + ": " + f.hosts + " + 2 = " + (f.hosts + 2) +
+                            " → " + pow2(f.hb) + " = " + f.size + " → " + f.hb + " Hostbits → <b>/" + f.np + "</b>.";
+      else if (s === 3) c = "<b>Lückenlos verteilen</b>: Subnetz 1 beginnt bei <b>" + intToIp(base) + "</b>. Broadcast = Netzadresse + Blockgröße − 1. " +
+                            "Das nächste Subnetz beginnt direkt danach (Broadcast + 1)" + (pl.list.length > 1 ? ", also Subnetz 2 bei <b>" + intToIp(pl.list[1].nid) + "</b>." : ".");
+      else c = "Belegt sind <b>" + fmt(pl.used) + "</b> von " + fmt(pl.total) + " Adressen. In den Subnetzen bleiben " + fmt(pl.waste) + " Hostadressen als Reserve ungenutzt. " +
+               (pl.free > 0 ? "Frei für weitere Subnetze: <b>" + fmt(pl.free) + "</b> Adressen ab <b>" + intToIp(base + pl.used) + "</b>." : "Das Netz ist damit komplett belegt.");
+      caption.innerHTML = c;
+    }
+
     function renderEx() {
       var total = totalSteps();
       if (ex.step > total) ex.step = total;
       if (ex.mode === "bit") renderBit(ex.step);
       else if (ex.mode === "block") renderBlock(ex.step);
+      else if (ex.mode === "vlsm") renderVlsm(ex.step);
       else renderSub(ex.step);
       $("exBack").disabled = ex.step <= 0;
       $("exNext").disabled = ex.step >= total;
@@ -711,6 +919,7 @@
       $("exPlay").textContent = ex.timer ? "⏸ pause" : "▶ abspielen";
       $("pOut").innerHTML = "<b>/" + ex.p + "</b> · " + intToIp(maskOf(ex.p));
       $("countBox").hidden = ex.mode !== "sub";
+      $("needsBox").hidden = ex.mode !== "vlsm";
       document.querySelectorAll("#modeChips .chip").forEach(function (c) { c.setAttribute("aria-pressed", c.dataset.mode === ex.mode ? "true" : "false"); });
     }
     function stop() { clearTimeout(ex.timer); ex.timer = null; }
@@ -725,6 +934,7 @@
       if (o.ip != null) { ex.ip = o.ip; ipInp.value = intToIp(o.ip); ipInp.removeAttribute("aria-invalid"); }
       if (o.p != null) { ex.p = o.p; pRange.value = o.p; }
       if (o.count != null) { ex.count = o.count; countInp.value = o.count; }
+      if (o.needs) { ex.needs = o.needs; needsInp.value = needsToStr(o.needs); needsInp.removeAttribute("aria-invalid"); }
       if (o.mode) ex.mode = o.mode;
       ex.step = 0; renderEx();
     }
@@ -743,13 +953,22 @@
       stop(); ex.count = v; ex.step = 0; renderEx();
     });
     countInp.addEventListener("blur", function () { countInp.value = ex.count; });
+    needsInp.addEventListener("input", function () {
+      var v = parseNeeds(needsInp.value);
+      if (!v) { needsInp.setAttribute("aria-invalid", "true"); return; }
+      needsInp.removeAttribute("aria-invalid");
+      stop(); ex.needs = v; ex.step = 0; renderEx();
+    });
+    needsInp.addEventListener("blur", function () { needsInp.value = needsToStr(ex.needs); needsInp.removeAttribute("aria-invalid"); });
     $("exRandom").addEventListener("click", function () {
+      if (ex.mode === "vlsm") { var d = genVlsmData(pick([2, 3])); setEx({ ip: d.base, p: d.bp, needs: d.needs }); return; }
       var p = ex.mode === "sub" ? pick([16, 20, 22, 24, 24, 24]) : rnd(16, 30);
       setEx({ ip: randHostIp(p), p: p, count: ex.mode === "sub" ? rnd(2, 12) : null });
     });
     $("modeChips").addEventListener("click", function (e) {
       var c = e.target.closest(".chip"); if (!c) return;
       if (c.dataset.mode === "sub" && ex.p > 28) { ex.p = 24; pRange.value = 24; }
+      if (c.dataset.mode === "vlsm" && ex.p > 24) { ex.p = 24; pRange.value = 24; }
       stop(); ex.mode = c.dataset.mode; ex.step = 0; renderEx();
     });
     $("exNext").addEventListener("click", function () { stop(); if (ex.step < totalSteps()) ex.step++; renderEx(); });
@@ -780,6 +999,7 @@
       return ip;
     }
 
+    // "gemischt" zieht aus TYPES; VLSM ist eine längere Tabellenaufgabe und nur einzeln wählbar
     var STORE = "ipv4-ueben", TYPES = ["adr", "hosts", "mask", "same", "priv", "sub"];
     var pr = { type: "adr", lvl: 2, task: null, wrong: 0, done: false, counted: false };
     var stats = { right: 0, total: 0, streak: 0, best: 0, hist: [] };
@@ -789,7 +1009,7 @@
     try {
       var saved = JSON.parse(localStorage.getItem(STORE) || "null");
       if (saved) {
-        if (TYPES.concat("mix").indexOf(saved.type) !== -1) pr.type = saved.type;
+        if (TYPES.concat("mix", "vlsm").indexOf(saved.type) !== -1) pr.type = saved.type;
         if ([1, 2, 3].indexOf(saved.lvl) !== -1) pr.lvl = saved.lvl;
         if (saved.stats) stats = Object.assign(stats, saved.stats);
       }
@@ -866,6 +1086,14 @@
         t.html = '<span class="line">' + ipv + '</span>';
         t.sub = "Ist das eine private Adresse (nur im lokalen Netz) oder eine öffentliche (im Internet erreichbar)?";
         t.ans = "choice"; t.choices = [["privat", "privat"], ["oeff", "öffentlich"]];
+      } else if (type === "vlsm") {
+        var d = genVlsmData(pr.lvl);
+        t.base = d.base; t.bp = d.bp; t.needs = d.needs; t.plan = vlsmPlan(d.base, d.bp, d.needs);
+        t.q = "vlsm-adressierungsschema";
+        t.html = '<span class="line">' + intToIp(d.base) + '<span class="pfx">/' + d.bp + '</span></span>';
+        t.sub = "Teile das Netz mit VLSM möglichst sparsam auf: Jedes Subnetz bekommt nur so viele Adressen wie nötig. " +
+                "Das größte Subnetz beginnt am Anfang des Netzes, die anderen folgen lückenlos, damit am Ende möglichst viel Platz frei bleibt.";
+        t.ans = "vlsm";
       } else {
         var bp, cnt;
         if (pr.lvl === 1) { bp = 24; cnt = pick([2, 4]); }
@@ -907,7 +1135,13 @@
     }
     function renderSettings() {
       document.querySelectorAll("#typeChips .chip").forEach(function (c) { c.setAttribute("aria-pressed", c.dataset.type === pr.type ? "true" : "false"); });
-      document.querySelectorAll("#lvlChips .chip").forEach(function (c) { c.setAttribute("aria-pressed", +c.dataset.lvl === pr.lvl ? "true" : "false"); });
+      var LBL = pr.type === "vlsm"
+        ? { 1: "leicht · /24, 3 standorte", 2: "mittel · /24, 3 – 5 standorte", 3: "schwer · /22 – /23, 4 – 6 standorte" }
+        : { 1: "leicht · /8 /16 /24", 2: "mittel · /24 – /30", 3: "schwer · /9 – /30" };
+      document.querySelectorAll("#lvlChips .chip").forEach(function (c) {
+        c.setAttribute("aria-pressed", +c.dataset.lvl === pr.lvl ? "true" : "false");
+        c.textContent = LBL[c.dataset.lvl];
+      });
     }
     function showFb(kind, title, body) {
       fb.className = "feedback " + kind;
@@ -922,9 +1156,13 @@
       $("taskQ").textContent = t.q;
       $("taskNum").innerHTML = t.html;
       $("taskSub").innerHTML = t.sub;
-      var isChoice = t.ans === "choice";
-      form.hidden = isChoice; choices.hidden = !isChoice;
-      if (isChoice) {
+      var isChoice = t.ans === "choice", isV = t.ans === "vlsm";
+      form.hidden = isChoice || isV; choices.hidden = !isChoice; vForm.hidden = !isV;
+      $("prGrid").classList.toggle("wide", isV);
+      if (isV) {
+        renderVlsmTask(t);
+        $("vlsmCheck").textContent = "prüfen";
+      } else if (isChoice) {
         choices.innerHTML = t.choices.map(function (c) { return '<button type="button" class="btn btn-ghost" data-c="' + c[0] + '">' + c[1] + '</button>'; }).join("");
       } else {
         answer.placeholder = PH[t.ans];
@@ -935,8 +1173,105 @@
       }
       $("solveBtn").disabled = false;
       fb.hidden = true;
-      if (interacted && !isChoice) answer.focus({ preventScroll: true });
+      if (interacted && isV) vForm.querySelector("input").focus({ preventScroll: true });
+      else if (interacted && !isChoice) answer.focus({ preventScroll: true });
     }
+
+    /* ---------- VLSM-Tabelle zum Ausfüllen ---------- */
+    var vForm = $("vlsmForm");
+    var VF = ["np", "nid", "first", "last", "bc"];
+    var VL = { np: "präfix", nid: "netzadresse", first: "erster host", last: "letzter host", bc: "broadcast" };
+    function renderVlsmTask(t) {
+      var h = '<thead><tr><th>standort</th><th>hosts</th>' + VF.map(function (f) { return '<th>' + VL[f] + '</th>'; }).join("") + '</tr></thead><tbody>';
+      t.needs.forEach(function (n, i) {
+        h += '<tr><td class="nm">' + esc(n.name) + '</td><td class="hi" data-label="benötigte hosts">' + n.hosts + '</td>' + VF.map(function (f) {
+          return '<td class="' + (f === "np" ? "f-np" : "f-ip") + '" data-label="' + VL[f] + '"><input class="inp" data-r="' + i + '" data-f="' + f + '" inputmode="decimal" autocomplete="off" spellcheck="false"' +
+                 ' placeholder="' + (f === "np" ? "/" : "") + '" aria-label="' + esc(n.name) + ': ' + VL[f] + '"></td>';
+        }).join("") + '</tr>';
+      });
+      $("vlsmTbl").innerHTML = h + '</tbody>';
+    }
+    function vInput(i, f) { return vForm.querySelector('input[data-r="' + i + '"][data-f="' + f + '"]'); }
+    function parsePrefixLike(raw) {
+      var m = /^\/?(\d{1,2})$/.exec(raw);
+      if (m) return +m[1] <= 32 ? +m[1] : null;
+      var v = parseIp(raw);
+      return v !== null && isMask(v) ? prefixOfMask(v) : null;
+    }
+    // Lösungsziel je Zeile: Gleich große Subnetze dürfen ihre Plätze tauschen
+    function vlsmTargets(t, nidVals) {
+      var pl = t.plan, taken = {}, target = [];
+      t.needs.forEach(function (n, i) {
+        var own = pl.byIdx[i], v = nidVals[i];
+        var m = pl.list.filter(function (s) { return s.size === own.size && s.nid === v && !taken[s.nr]; })[0];
+        if (m) { taken[m.nr] = true; target[i] = m; }
+      });
+      t.needs.forEach(function (n, i) {
+        if (target[i]) return;
+        var own = pl.byIdx[i];
+        var m = !taken[own.nr] ? own : (pl.list.filter(function (s) { return s.size === own.size && !taken[s.nr]; })[0] || own);
+        taken[m.nr] = true; target[i] = m;
+      });
+      return target;
+    }
+    function checkVlsm(e) {
+      e.preventDefault();
+      interacted = true;
+      if (pr.done) { newTask(); return; }
+      var t = pr.task, pl = t.plan, empty = 0, cells = 0, raw = [];
+      t.needs.forEach(function (n, i) {
+        raw[i] = {};
+        VF.forEach(function (f) {
+          var inp = vInput(i, f), v = inp.value.trim().replace(/\s+/g, "");
+          if (f !== "np") v = v.replace(/\/\d{1,2}$/, "");
+          raw[i][f] = v; cells++; if (!v) empty++;
+          inp.classList.remove("ok"); inp.removeAttribute("aria-invalid");
+        });
+      });
+      if (empty === cells) { showFb("", "> Antwort fehlt", "<span>Fülle die Tabelle aus, dann wird geprüft.</span>"); return; }
+      if (empty) {
+        VF.forEach(function (f) { t.needs.forEach(function (n, i) { if (!raw[i][f]) vInput(i, f).setAttribute("aria-invalid", "true"); }); });
+        showFb("", "> noch " + empty + (empty === 1 ? " Feld" : " Felder") + " leer", "<span>Erst wenn alles ausgefüllt ist, wird geprüft. Leere Felder sind rot markiert.</span>");
+        return;
+      }
+      var nidVals = t.needs.map(function (n, i) { return parseIp(raw[i].nid); });
+      var target = vlsmTargets(t, nidVals), wrong = { np: [], nid: [], first: [], last: [], bc: [] }, nWrong = 0;
+      t.needs.forEach(function (n, i) {
+        var own = pl.byIdx[i], tg = target[i];
+        VF.forEach(function (f) {
+          var val = f === "np" ? parsePrefixLike(raw[i].np) : parseIp(raw[i][f]);
+          var ok = f === "np" ? val === own.np : val === tg[f];
+          vInput(i, f).classList.toggle("ok", ok);
+          if (!ok) { vInput(i, f).setAttribute("aria-invalid", "true"); wrong[f].push({ i: i, val: val }); nWrong++; }
+        });
+      });
+      var ok = nWrong === 0;
+      if (!pr.counted) { pr.counted = true; record(ok); }
+      if (ok) {
+        pr.done = true;
+        vForm.querySelectorAll("input").forEach(function (x) { x.readOnly = true; });
+        $("vlsmCheck").textContent = "weiter ▶"; $("solveBtn").disabled = true;
+        showFb("ok", "> alles richtig!", solutionHtml(t) + '<span class="hint">Enter oder „weiter“ für die nächste Aufgabe.</span>');
+        return;
+      }
+      pr.wrong++;
+      var msg = nWrong + " von " + cells + (nWrong === 1 ? " Feld stimmt" : " Feldern stimmen") + " noch nicht (rot markiert).", hint;
+      if (wrong.np.length) {
+        var w = wrong.np[0], s = pl.byIdx[w.i], noPlus2 = 32 - Math.ceil(Math.log2(Math.max(2, s.hosts)));
+        if (w.val === noPlus2 && noPlus2 !== s.np) hint = "Tipp: Bei " + esc(s.name) + " fehlen die <b>+ 2</b> für Netz- und Broadcastadresse.";
+        else if (pr.wrong === 1) hint = "Tipp Präfix: Hosts + 2, auf die nächste Zweierpotenz aufrunden. Präfix = 32 − Exponent.";
+        else hint = "Tipp: " + esc(s.name) + ": " + s.hosts + " + 2 = " + (s.hosts + 2) + " → " + pow2(s.hb) + " = " + s.size + " → /" + s.np + ".";
+      } else if (wrong.nid.length) {
+        if (pr.wrong === 1) hint = "Tipp Netzadressen: Größtes Subnetz zuerst, es beginnt bei " + intToIp(t.base) + ". Jedes weitere beginnt direkt nach dem Broadcast des vorherigen.";
+        else hint = "Tipp – Reihenfolge nach Größe: " + pl.list.map(function (s) { return esc(s.name) + " (" + s.size + ")"; }).join(" → ") + ".";
+      } else {
+        hint = "Tipp: erster Host = Netzadresse + 1 · Broadcast = Netzadresse + Blockgröße − 1 · letzter Host = Broadcast − 1.";
+      }
+      showFb("bad", "> leider noch nicht – versuch’s nochmal", "<span>" + msg + '</span><span class="hint">' + hint + "</span>");
+      var first = vForm.querySelector('input[aria-invalid="true"]'); if (first) first.select();
+    }
+    vForm.addEventListener("submit", checkVlsm);
+    vForm.addEventListener("input", function (e) { if (e.target.matches("input")) { e.target.removeAttribute("aria-invalid"); e.target.classList.remove("ok"); } });
 
     function blockHintText(ip, p) {
       var bi = blockInfo(p);
@@ -970,6 +1305,12 @@
         else why = "liegt in keinem der drei privaten Bereiche";
         return '<span class="mono">' + intToIp(t.ip) + " " + why + " → <b>" + (t.value ? "privat" : "öffentlich") + "</b></span>";
       }
+      if (t.type === "vlsm") {
+        var pl = t.plan;
+        return vlsmTable(pl, 3, false) + vlsmBar(pl) +
+          '<span class="small">Belegt ' + fmt(pl.used) + " von " + fmt(pl.total) + " Adressen · frei: <b>" + fmt(pl.free) + "</b>" +
+          (pl.free > 0 ? " ab " + intToIp(pl.base + pl.used) : "") + (pl.list.some(function (s, k) { return k && s.size === pl.list[k - 1].size; }) ? " · Gleich große Subnetze dürfen die Plätze tauschen." : "") + "</span>";
+      }
       var size = Math.pow(2, 32 - t.np), bi = blockInfo(t.np);
       var s = "2<sup>" + t.n + "</sup> = " + Math.pow(2, t.n) + " ≥ " + t.count + " → " + t.n + " Bits leihen → /" + t.bp + " + " + t.n + " = <b>/" + t.np + "</b>";
       if (t.kind === "hosts") s += " → " + (32 - t.np) + " Hostbits → " + pow2(32 - t.np) + " − 2 = <b>" + fmt(t.value) + "</b>";
@@ -977,7 +1318,7 @@
       return '<span class="mono">' + s + "</span>";
     }
     function explainLink(t) {
-      return (t.type === "adr" || t.type === "sub") ? '<button type="button" class="linkbtn" id="toExplain">Schritt für Schritt ansehen ↑</button>' : "";
+      return (t.type === "adr" || t.type === "sub" || t.type === "vlsm") ? '<button type="button" class="linkbtn" id="toExplain">Schritt für Schritt ansehen ↑</button>' : "";
     }
 
     function finish(ok, title) {
@@ -1101,6 +1442,16 @@
           var yes = x.dataset.c === "ja" || x.dataset.c === "privat";
           if (yes === t.value) x.classList.add("ok"); x.disabled = true;
         });
+      } else if (t.ans === "vlsm") {
+        t.needs.forEach(function (n, i) {
+          var s = t.plan.byIdx[i];
+          VF.forEach(function (f) {
+            var inp = vInput(i, f);
+            inp.value = f === "np" ? "/" + s.np : intToIp(s[f]);
+            inp.readOnly = true; inp.classList.remove("ok"); inp.removeAttribute("aria-invalid");
+          });
+        });
+        $("vlsmCheck").textContent = "weiter ▶";
       } else {
         answer.readOnly = true; form.classList.remove("is-bad", "is-ok");
         $("checkBtn").textContent = "weiter ▶";
@@ -1112,6 +1463,7 @@
       if (!e.target.closest("#toExplain")) return;
       var t = pr.task;
       if (t.type === "adr") setEx({ ip: t.ip, p: t.p, mode: t.p % 8 ? "block" : "bit" });
+      else if (t.type === "vlsm") setEx({ ip: t.base, p: t.bp, needs: t.needs, mode: "vlsm" });
       else setEx({ ip: t.base, p: t.bp, count: t.count, mode: "sub" });
       $("verstehen").scrollIntoView({ behavior: "smooth", block: "start" });
     });
