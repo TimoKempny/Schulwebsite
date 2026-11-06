@@ -114,7 +114,8 @@ const EINTRAEGE = [
     titel: "IPv4 & Subnetze",
     beschreibung: "IP-Adressen, Subnetzmasken, Subnetting und VLSM verstehen und üben",
     url: "ipv4.html",
-    fach: ["ITS"]
+    fach: ["ITS"],
+    neu: "2026-11-06"
   },
   // ---------- Infos & Organisation ----------
   {
