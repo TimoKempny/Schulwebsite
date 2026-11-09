@@ -207,7 +207,7 @@
         </label>
         <button class="btn btn-ghost" id="newBtn" type="button" title="Leeres Grundgerüst (Strg+Z holt den alten Code zurück)">Neu</button>
         <button class="btn btn-ghost" id="openBtn" type="button" title=".c-Datei öffnen">Öffnen</button>
-        <button class="btn btn-ghost" id="saveBtn" type="button" title="Als .c-Datei herunterladen (Strg + S)">Speichern</button>
+        <button class="btn btn-ghost" id="saveBtn" type="button" title="Name und Speicherort wählen (Strg + S)">Speichern</button>
         <input type="file" id="fileIn" accept=".c,.h,.txt,text/plain" hidden>
         <span class="spacer"></span>
         <span class="zoom" role="group" aria-label="Schriftgröße">
@@ -498,8 +498,25 @@
       if (!/\.(c|h)$/i.test(n)) n += ".c";
       return n;
     }
-    function download() {
+    async function download() {
       var blob = new Blob([ta.value], { type: "text/x-csrc;charset=utf-8" });
+      // Speichern-Dialog (Name und Ordner wählbar), falls der Browser ihn kann
+      if (window.showSaveFilePicker) {
+        try {
+          var handle = await window.showSaveFilePicker({
+            suggestedName: cleanName(),
+            types: [{ description: "C-Datei", accept: { "text/x-csrc": [".c", ".h"] } }]
+          });
+          var out = await handle.createWritable();
+          await out.write(blob);
+          await out.close();
+          fileName.value = handle.name; save("name", handle.name);
+          toast(handle.name + " gespeichert");
+          return;
+        } catch (err) {
+          if (err.name === "AbortError") return; // Dialog abgebrochen
+        }
+      }
       var url = URL.createObjectURL(blob), a = document.createElement("a");
       a.href = url; a.download = cleanName();
       document.body.appendChild(a); a.click(); a.remove();

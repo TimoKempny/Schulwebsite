@@ -209,7 +209,7 @@
         </label>
         <button class="btn btn-ghost" id="newBtn" type="button" title="Leeres Programm (Strg+Z holt den alten Code zurück)">Neu</button>
         <button class="btn btn-ghost" id="openBtn" type="button" title=".py-Datei öffnen">Öffnen</button>
-        <button class="btn btn-ghost" id="saveBtn" type="button" title="Als .py-Datei herunterladen (Strg + S)">Speichern</button>
+        <button class="btn btn-ghost" id="saveBtn" type="button" title="Name und Speicherort wählen (Strg + S)">Speichern</button>
         <input type="file" id="fileIn" accept=".py,.txt,text/plain,text/x-python" hidden>
         <span class="spacer"></span>
         <span class="zoom" role="group" aria-label="Schriftgröße">
@@ -494,8 +494,25 @@
       if (!/\.py$/i.test(n)) n += ".py";
       return n;
     }
-    function download() {
+    async function download() {
       var blob = new Blob([ta.value], { type: "text/x-python;charset=utf-8" });
+      // Speichern-Dialog (Name und Ordner wählbar), falls der Browser ihn kann
+      if (window.showSaveFilePicker) {
+        try {
+          var handle = await window.showSaveFilePicker({
+            suggestedName: cleanName(),
+            types: [{ description: "Python-Datei", accept: { "text/x-python": [".py"] } }]
+          });
+          var out = await handle.createWritable();
+          await out.write(blob);
+          await out.close();
+          fileName.value = handle.name; save("name", handle.name);
+          toast(handle.name + " gespeichert");
+          return;
+        } catch (err) {
+          if (err.name === "AbortError") return; // Dialog abgebrochen
+        }
+      }
       var url = URL.createObjectURL(blob), a = document.createElement("a");
       a.href = url; a.download = cleanName();
       document.body.appendChild(a); a.click(); a.remove();
