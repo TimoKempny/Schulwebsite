@@ -155,6 +155,14 @@ const EINTRAEGE = [
     fach: ["Kom1"]
   },
   {
+    typ: "link",
+    titel: "Open-Source-Alternativen",
+    beschreibung: "Verzeichnis mit Open-Source-Alternativen zu bekannter kommerzieller Software",
+    url: "https://opensourcealternative.to/",
+    fach: ["Allgemein"],
+    neu: "2026-11-09"
+  },
+  {
     typ: "materialien",
     titel: "CSS Merkhilfe",
     beschreibung: "Merkhilfe für CSS",
