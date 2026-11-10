@@ -1038,7 +1038,7 @@
       } else showViewer(S.active);
       if (/\.html?$/i.test(S.active)) { S.lastHtml = S.active; send({ t: "show", pid: S.pid, path: S.active }); }
     }
-    saveTabs(); renderTabs(); renderTree(); renderProblems(); afterLintMarksOnly();
+    saveTabs(); renderTabs(); renderTree(); renderProblems(); afterLintMarksOnly(); renderSnipbar();
   }
   function afterLintMarksOnly() {
     var ed = S.active && S.editors.get(S.active); if (!ed) return;
@@ -1081,6 +1081,160 @@
     a.href = url; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  /* ==========================================================
+     Bausteine: Tags und CSS über Menüs einfügen (Inhalte in html-editor-hilfe.js)
+     ========================================================== */
+  var snip = { mode: "html", file: null, open: -1, btn: null };
+  function snipEditable() {
+    var p = S.active, f = p && S.files.get(p), lang = p ? HEPruef.langOf(p) : "";
+    if (!f || f.kind !== "text" || (lang !== "html" && lang !== "css") || /\.(svg|xml)$/i.test(p)) return null;
+    return lang;
+  }
+  function renderSnipbar() {
+    var bar = $("snipbar"), lang = snipEditable();
+    closeSnip();
+    if (!lang || typeof HEHilfe === "undefined") { bar.hidden = true; return; }
+    if (lang === "css") snip.mode = "css";
+    else if (snip.file !== S.active) {
+      var ed = S.editors.get(S.active);
+      snip.mode = ed && ed.ctxLang(ed.ta.selectionStart) === "css" ? "css" : "html";
+    }
+    snip.file = S.active;
+    bar.hidden = false;
+    var html = lang === "html"
+      ? '<span class="seg" role="group" aria-label="Art der Bausteine"><button type="button" data-mode="html" aria-pressed="' + (snip.mode === "html") + '">HTML</button>' +
+        '<button type="button" data-mode="css" aria-pressed="' + (snip.mode === "css") + '">CSS</button></span>'
+      : '<span class="lbl">css:</span>';
+    HEHilfe[snip.mode].forEach(function (g, i) {
+      html += '<button class="sb" type="button" data-g="' + i + '" aria-haspopup="menu" aria-expanded="false">' + esc(g.g) + "</button>";
+    });
+    bar.innerHTML = html;
+  }
+  $("snipbar").addEventListener("click", function (e) {
+    var m = e.target.closest("[data-mode]");
+    if (m) { snip.mode = m.dataset.mode; renderSnipbar(); return; }
+    var b = e.target.closest(".sb");
+    if (b) { if (snip.open === +b.dataset.g) closeSnip(); else openSnip(+b.dataset.g, b, false); }
+  });
+  $("snipbar").addEventListener("keydown", function (e) {
+    var b = e.target.closest(".sb");
+    if (b && (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")) { e.preventDefault(); openSnip(+b.dataset.g, b, true); }
+  });
+  function openSnip(gi, btn, focusFirst) {
+    closeSnip();
+    var group = HEHilfe[snip.mode][gi]; if (!group) return;
+    snip.open = gi; snip.btn = btn;
+    btn.setAttribute("aria-expanded", "true");
+    var list = $("smList"), menu = $("smenu");
+    list.innerHTML = "";
+    group.items.forEach(function (it, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "sm-item"; b.setAttribute("role", "menuitem"); b.dataset.i = i;
+      b.innerHTML = "<code>" + esc(it.n) + "</code><span>" + esc(it.k) + "</span>";
+      b.addEventListener("mouseenter", function () { showSnipInfo(it, b); });
+      b.addEventListener("focus", function () { showSnipInfo(it, b); });
+      b.addEventListener("click", function () { insertSnip(it); });
+      list.appendChild(b);
+    });
+    menu.hidden = false;
+    var r = btn.getBoundingClientRect(), w = menu.offsetWidth;
+    var left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12));
+    var top = r.bottom + 4, h = Math.max(220, Math.min(460, window.innerHeight - top - 12));
+    if (window.innerHeight - r.bottom < 240) { h = Math.min(460, r.top - 16); top = r.top - 4 - h; }
+    menu.style.left = left + "px"; menu.style.top = top + "px"; menu.style.height = h + "px";
+    showSnipInfo(group.items[0], list.firstChild);
+    if (focusFirst && list.firstChild) list.firstChild.focus();
+  }
+  function closeSnip() {
+    $("smenu").hidden = true;
+    if (snip.btn) snip.btn.setAttribute("aria-expanded", "false");
+    snip.open = -1; snip.btn = null;
+  }
+  function cleanSnippet(s) { return s.replace(/\{\{sel:([^}]*)\}\}/g, "$1").replace(/[«»¦]/g, ""); }
+  function showSnipInfo(it, btn) {
+    $("smList").querySelectorAll(".sm-item.cur").forEach(function (x) { x.classList.remove("cur"); });
+    if (btn) btn.classList.add("cur");
+    var css = snip.mode === "css";
+    var h = "<h3>" + esc(it.n) + '</h3><p class="kurz">' + esc(it.k) + "</p>" + (it.t ? "<p>" + esc(it.t) + "</p>" : "");
+    if (it.a && it.a.length) {
+      h += "<h4>" + esc(it.ah || (css ? "Werte" : "Attribute")) + "</h4><dl>" +
+        it.a.map(function (a) { return "<dt><code>" + esc(a[0]) + "</code></dt><dd>" + esc(a[1]) + "</dd>"; }).join("") + "</dl>";
+    }
+    h += "<h4>Beispiel</h4><pre>" + esc(cleanSnippet(it.s)) + "</pre>";
+    h += '<div class="sm-foot"><button class="btn" type="button" id="smIns">Einfügen</button><span>' +
+      (/\{\{sel:/.test(it.s) ? "Markierter Text wird umschlossen." : "Wird an der Cursorposition eingefügt.") + "</span></div>";
+    $("smInfo").innerHTML = h;
+    $("smIns").addEventListener("click", function () { insertSnip(it); });
+  }
+  $("smenu").addEventListener("keydown", function (e) {
+    var items = Array.from($("smList").querySelectorAll(".sm-item")), i = items.indexOf(document.activeElement);
+    if (e.key === "Escape") { e.preventDefault(); var b = snip.btn; closeSnip(); if (b) b.focus(); return; }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      var n = i < 0 ? 0 : (i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+      items[n].focus();
+    }
+    if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && i >= 0) {
+      e.preventDefault();
+      var btns = Array.from($("snipbar").querySelectorAll(".sb")), k = btns.indexOf(snip.btn);
+      var nb = btns[(k + (e.key === "ArrowRight" ? 1 : -1) + btns.length) % btns.length];
+      if (nb) openSnip(+nb.dataset.g, nb, true);
+    }
+  });
+  document.addEventListener("mousedown", function (e) {
+    if (snip.open >= 0 && !$("smenu").contains(e.target) && !e.target.closest(".sb")) closeSnip();
+  });
+  window.addEventListener("resize", closeSnip);
+
+  // Tiefe der geschweiften Klammern vor pos (Kommentare und Zeichenketten zählen nicht)
+  function braceDepth(text) {
+    var t = text.replace(/\/\*[\s\S]*?(\*\/|$)/g, "").replace(/"[^"\n]*"|'[^'\n]*'/g, "");
+    return (t.match(/\{/g) || []).length - (t.match(/\}/g) || []).length;
+  }
+  function insertSnip(it) {
+    var ed = S.editors.get(S.active);
+    if (!ed) return;
+    var ta = ed.ta, v = ta.value, s = ta.selectionStart, en = ta.selectionEnd, css = snip.mode === "css";
+    var ctx = ed.ctxLang(s);
+    var inAttr = ed.lang === "html" && /\sstyle\s*=\s*"[^"]*$/i.test(v.slice(Math.max(0, s - 400), s));
+    if (ed.lang === "html") {
+      if (css && ctx !== "css" && !inAttr) { toast("CSS gehört in die CSS-Datei oder zwischen <style> und </style>. Setze den Cursor dorthin.", 5000); return; }
+      if (css && inAttr && (it.r || /\n/.test(it.s))) { toast("Im style-Attribut gehen nur einzelne Eigenschaften, keine Regeln.", 5000); return; }
+      if (!css && ctx !== "html") { toast("Der Cursor steht in einem <" + (ctx === "css" ? "style" : "script") + ">-Bereich. HTML-Tags gehören außerhalb davon.", 5000); return; }
+    }
+    var isAttr = !css && it.s[0] === " ";
+    var inTag = !css && ed.lang === "html" && /<[a-zA-Z][^<>]*$/.test(v.slice(Math.max(0, s - 600), s));
+    if (isAttr && !inTag) { toast("Attribute gehören in ein Start-Tag: Setze den Cursor z. B. hinter <p und füge dann ein – ergibt <p class=\"…\">.", 6000); return; }
+    closeSnip();
+    var tpl = it.s, sel = v.slice(s, en), wrap = /\{\{sel:/.test(tpl);
+    if (!wrap) s = en;  // Markierung bleibt stehen, Baustein kommt dahinter
+    if (!isAttr && inTag) {
+      // Cursor steht mitten in einem Tag: Baustein hinter das Tag setzen
+      var gt = v.indexOf(">", s);
+      if (gt >= 0) { s = en = gt + 1; sel = ""; }
+    }
+    tpl = tpl.replace(/\{\{sel:([^}]*)\}\}/g, function (_, d) { return sel || d; });
+    if (sel && wrap) tpl = tpl.replace(/[«»]/g, "");
+    var ls = v.lastIndexOf("\n", s - 1) + 1, before = v.slice(ls, s);
+    var le = v.indexOf("\n", en); if (le < 0) le = v.length;
+    var after = v.slice(en, le);
+    var ind = (/^[ \t]*/.exec(before) || [""])[0], prefix = "", suffix = "";
+    var block = /\n/.test(tpl) || (css && !inAttr);
+    if (block && before.trim()) prefix = "\n" + ind;
+    if (block && after.trim()) suffix = "\n" + ind;
+    var text = prefix + tpl.split("\n").map(function (l, i) { return i && l ? ind + l : l; }).join("\n") + suffix;
+    var selA, selB, c = text.indexOf("¦");
+    if (c >= 0) { text = text.slice(0, c) + text.slice(c + 1); selA = selB = c; } else selA = selB = text.length - suffix.length;
+    var a = text.indexOf("«");
+    if (a >= 0) { var b = text.indexOf("»", a); text = text.slice(0, a) + text.slice(a + 1, b) + text.slice(b + 1); selA = a; selB = b - 1; }
+    ed.replace(s, en, text, s + selA, s + selB);
+    if (css && !it.r && !inAttr) {
+      var start = 0;
+      if (ed.lang === "html") { var low = v.slice(0, s).toLowerCase(); start = low.lastIndexOf("<style"); start = v.indexOf(">", start) + 1; }
+      if (braceDepth(v.slice(start, s)) <= 0) toast("Tipp: Eigenschaften gehören in eine Regel, z. B. p { " + cleanSnippet(it.s).split("\n")[0] + " }", 5000);
+    }
   }
 
   /* ==========================================================

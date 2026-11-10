@@ -154,6 +154,40 @@
     .tab .x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: .85rem; line-height: 1; padding: 3px 5px; border-radius: 4px; }
     .tab .x:hover { background: var(--surface-2); color: var(--bad); }
     .tab .dot { width: 7px; height: 7px; border-radius: 50%; }
+    /* ---------- Bausteine-Leiste ---------- */
+    .snipbar {
+      display: flex; align-items: center; gap: 2px; padding: 4px 8px; border-bottom: 1px solid var(--border);
+      background: var(--surface); overflow-x: auto; scrollbar-width: thin; font: .76rem var(--font-mono);
+    }
+    .snipbar .lbl { color: var(--muted); margin-right: 4px; white-space: nowrap; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin-right: 6px; flex: none; }
+    .seg button { border: 0; background: none; color: var(--muted); font: inherit; padding: 3px 9px; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+    .sb { border: 1px solid transparent; background: none; color: var(--text); font: inherit; padding: 4px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap; flex: none; }
+    .sb:hover, .sb[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); }
+    .sb::after { content: " ▾"; color: var(--muted); font-size: .9em; }
+    .smenu {
+      position: fixed; z-index: 40; display: grid; grid-template-columns: 230px minmax(0, 1fr); width: min(680px, calc(100vw - 24px));
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 36px rgba(0, 0, 0, .22); overflow: hidden;
+    }
+    @media (max-width: 640px) { .smenu { grid-template-columns: 1fr; grid-template-rows: minmax(0, 45%) minmax(0, 1fr); } }
+    .sm-list { overflow: auto; padding: 6px; border-right: 1px solid var(--border); scrollbar-width: thin; }
+    .sm-item { display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--text); padding: 6px 9px; border-radius: 7px; cursor: pointer; }
+    .sm-item code { font: 600 .82rem var(--font-mono); color: var(--accent); }
+    .sm-item span { display: block; font-size: .78rem; color: var(--muted); line-height: 1.3; margin-top: 1px; }
+    .sm-item:hover, .sm-item:focus-visible, .sm-item.cur { background: var(--accent-soft); outline: none; }
+    .sm-info { overflow: auto; padding: 14px 16px; font-size: .88rem; scrollbar-width: thin; }
+    .sm-info h3 { margin: 0 0 2px; font: 600 1rem var(--font-mono); color: var(--accent); }
+    .sm-info .kurz { margin: 0 0 8px; font-weight: 600; }
+    .sm-info p { margin: 0 0 10px; color: var(--muted); }
+    .sm-info h4 { margin: 10px 0 4px; font: 600 .74rem var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .sm-info dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; font-size: .84rem; }
+    .sm-info dt code { font: .8rem var(--font-mono); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; white-space: pre-wrap; }
+    .sm-info dd { margin: 0; color: var(--text); }
+    .sm-info pre { margin: 6px 0 12px; padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; font: .8rem/1.45 var(--font-mono); overflow-x: auto; }
+    .sm-info .sm-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .sm-info .sm-foot span { font-size: .78rem; color: var(--muted); }
+
     .edhost { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; --ed-fs: 14px; --ed-lh: 22px; --ed-pad: 12px; }
     .ed-scroll { position: relative; flex: 1; overflow: auto; min-height: 0; background: var(--surface); }
     .ed-scroll, .tree, .plist, .tabs, .viewer { scrollbar-color: var(--border) transparent; }
@@ -323,6 +357,7 @@
         <div class="edcol">
           <section class="pane edpane" aria-label="Editor">
             <div class="tabs" id="tabs" role="tablist" aria-label="Geöffnete Dateien"></div>
+            <div class="snipbar" id="snipbar" role="toolbar" aria-label="Bausteine einfügen" hidden></div>
             <div class="edhost" id="edHost"></div>
             <div class="ed-foot">
               <span id="caretPos">–</span>
@@ -385,12 +420,17 @@
   <input type="file" id="upIn" multiple hidden>
   <input type="file" id="zipIn" accept=".zip,application/zip" hidden>
   <input type="file" id="dirIn" webkitdirectory hidden>
+  <div class="smenu" id="smenu" hidden>
+    <div class="sm-list" id="smList" role="menu"></div>
+    <div class="sm-info" id="smInfo" aria-live="polite"></div>
+  </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/app.js"></script>
   <script src="js/html-editor-db.js"></script>
   <script src="js/html-editor-zip.js"></script>
   <script src="js/html-editor-pruefen.js"></script>
+  <script src="js/html-editor-hilfe.js"></script>
   <script src="js/html-editor.js"></script>
 </body>
 </html>
