@@ -41,7 +41,8 @@
     <article class="container prose">
       <div class="kurz">
         <p><strong>Kurz gesagt:</strong> Diese Seite setzt keine Cookies, verwendet kein Tracking und keine Analyse-Werkzeuge und hat keine Formulare, die Daten verschicken.
-           Der Anbieter GitHub erfasst beim Aufruf technisch bedingt Ihre IP-Adresse. Einstellungen, Ihr Code in den Editoren und Ihre PDF-Dateien im PDF-Editor bleiben auf Ihrem eigenen Gerät.</p>
+           Der Anbieter GitHub erfasst beim Aufruf technisch bedingt Ihre IP-Adresse. Einstellungen, Ihr Code in den Editoren und Ihre PDF-Dateien im PDF-Editor bleiben auf Ihrem eigenen Gerät.
+           Nur wenn Sie im HTML-Editor ausdrücklich die „W3C-Prüfung“ starten, wird der Code der geprüften Datei an den Prüfdienst des W3C geschickt.</p>
       </div>
 
       <h2>1. Verantwortlicher</h2>
@@ -67,6 +68,7 @@
         <li>Ihren Code, den Dateinamen und die Schriftgröße im C-Editor,</li>
         <li>Ihren Code, den Dateinamen, die Schriftgröße, die Fensteraufteilung und die zuletzt eingegebenen Befehle der Konsole im Python-Editor,</li>
         <li>Ihren Diagramm-Code, den gewählten Farbstil und die Fensteraufteilung im Diagramm-Editor,</li>
+        <li>die geöffneten Dateien, die Schriftgröße, die Fensteraufteilung und die Einstellungen der Vorschau im HTML-Editor,</li>
         <li>Einstellungen und Statistik in den Übungen „Dezimal ↔ Binär“, „Hexadezimal &amp; Oktal“ und „IPv4 &amp; Subnetze“,</li>
         <li>die zuletzt gewählte Farbe im Farbwähler sowie den Stand und den zuletzt eingelesenen Programmcode im Struktogramm-Editor,</li>
         <li>die eingetragenen Klassen mit Namen, die Abwesenheiten des Tages, den Stand der Auslosung, die Regeln für Gruppen und die letzte Gruppeneinteilung im Lostopf. Der Export als Datei geschieht ebenfalls nur lokal in Ihrem Browser.</li>
@@ -78,9 +80,20 @@
          damit Eingaben mit <code>input()</code> funktionieren. Er sammelt und überträgt keine Daten und wirkt nur auf der Seite des Python-Editors.
          Auch dies ist für die gewünschte Funktion erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Sie können ihn ebenfalls über „Websitedaten löschen“ entfernen.</p>
 
+      <p>Der HTML-Editor speichert Ihre Projekte (Dateien, Bilder und Projektnamen) in der Datenbank Ihres Browsers (IndexedDB) und registriert
+         einen eigenen Service Worker. Dieser liefert die Live-Vorschau Ihrer Webseite direkt aus diesem Speicher aus, damit Links zwischen Ihren Seiten,
+         CSS-Dateien und Bilder wie auf einem echten Webserver funktionieren. Er wirkt nur auf die Vorschau-Adressen des HTML-Editors und überträgt keine Daten.
+         Projekte bleiben auf Ihrem Gerät, bis Sie sie im Editor oder über „Websitedaten löschen“ entfernen. Auch dies ist für die gewünschte Funktion
+         erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG).</p>
+
       <h2>4. Editoren, PDF-Editor und weitere Werkzeuge</h2>
       <p>Programme im C-Editor und im Python-Editor werden vollständig in Ihrem Browser übersetzt und ausgeführt; Python läuft dabei mit Pyodide, das auf dieser Seite selbst liegt.
          Ihr Quelltext und Ihre Eingaben werden nicht über das Internet übertragen.</p>
+      <p>Auch der HTML-Editor prüft Ihren Code normalerweise nur in Ihrem Browser. Wenn Sie dort die Schaltfläche „W3C-Prüfung“ anklicken (und den Hinweis
+         davor bestätigen), wird der Inhalt der gerade geöffneten HTML- oder CSS-Datei an den Prüfdienst des World Wide Web Consortium (W3C) übertragen
+         (validator.w3.org bzw. jigsaw.w3.org). Dabei erhält der Anbieter technisch bedingt auch Ihre IP-Adresse. Es gilt die
+         <a href="https://www.w3.org/policies/privacy/">Datenschutzerklärung des W3C</a>. Schreiben Sie deshalb keine persönlichen Angaben in Code,
+         den Sie so prüfen lassen. Rechtsgrundlage ist Ihre Einwilligung durch das Anklicken (Art. 6 Abs. 1 lit. a DSGVO).</p>
       <p>Der PDF-Editor verarbeitet Ihre Dateien ebenfalls ausschließlich in Ihrem Browser. PDF-Dateien, Unterschriften, Schwärzungen und Passwörter werden
          nicht hochgeladen, nicht an mich oder Dritte übertragen und nicht gespeichert. Nach dem Schließen der Seite sind sie aus dem Werkzeug verschwunden.</p>
       <p>Der Diagramm-Editor zeichnet Ihre Diagramme mit der Bibliothek Mermaid, die auf dieser Seite selbst liegt, ebenfalls nur in Ihrem Browser.
@@ -104,7 +117,7 @@
         <a href="https://www.baden-wuerttemberg.datenschutz.de">www.baden-wuerttemberg.datenschutz.de</a>
       </address>
 
-      <p class="mono" style="color: var(--muted); font-size: .85rem; margin-top: 2em;">Stand: Oktober 2026</p>
+      <p class="mono" style="color: var(--muted); font-size: .85rem; margin-top: 2em;">Stand: November 2026</p>
       <p><a href="impressum.html">Zum Impressum →</a></p>
     </article>
   </main>

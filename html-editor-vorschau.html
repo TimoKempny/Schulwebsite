@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vorschau · HTML-Editor</title>
+  <meta name="robots" content="noindex">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "hell") document.documentElement.setAttribute("data-theme", "light");
+      if (t === "dunkel") document.documentElement.setAttribute("data-theme", "dark");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    :root { --con-err: #b91c1c; --con-warn: #a34a07; --con-info: #1d4ed8; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --con-err: #f87171; --con-warn: #fbbf24; --con-info: #93c5fd; } }
+    :root[data-theme="dark"] { --con-err: #f87171; --con-warn: #fbbf24; --con-info: #93c5fd; }
+
+    html, body { height: 100%; }
+    body { min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-2); }
+    .vbar {
+      display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface);
+      border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: .78rem; flex-wrap: wrap;
+    }
+    .ib {
+      border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 8px;
+      font: inherit; padding: 4px 8px; cursor: pointer; line-height: 1.2; position: relative;
+    }
+    .ib:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+    .ib:disabled { opacity: .4; cursor: default; }
+    .ib[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+    .ib.stale::after { content: ""; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--new); }
+    .addr {
+      flex: 1 1 140px; min-width: 0; display: flex; align-items: center; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface-2); padding-left: 8px;
+    }
+    .addr:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .addr span { color: var(--muted); white-space: nowrap; }
+    .addr input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: inherit; padding: 5px 8px 5px 2px; outline: none; }
+    select.ib { padding-right: 4px; }
+    .badge { display: inline-block; min-width: 1.4em; text-align: center; border-radius: 999px; padding: 0 5px; margin-left: 4px; font-size: .7rem; }
+    .badge.err { background: var(--con-err); color: var(--surface); }
+    .badge.warn { background: var(--con-warn); color: var(--surface); }
+
+    .stage { flex: 1; min-height: 0; display: flex; justify-content: center; overflow: auto; }
+    .stage.sized { padding: 12px; background-image: radial-gradient(var(--border) 1px, transparent 1px); background-size: 14px 14px; }
+    iframe { border: 0; width: 100%; height: 100%; background: #fff; display: block; flex: none; }
+    .stage.sized iframe { box-shadow: var(--shadow); border: 1px solid var(--border); border-radius: 6px; }
+
+    .msg { margin: auto; max-width: 460px; padding: 24px; text-align: center; color: var(--muted); font-size: .95rem; }
+    .msg b { color: var(--text); }
+
+    .konsole { flex: none; height: 34%; min-height: 90px; display: flex; flex-direction: column; border-top: 1px solid var(--border); background: var(--surface); }
+    .k-head { display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-family: var(--font-mono); font-size: .75rem; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface-2); }
+    .k-head b { color: var(--text); }
+    .k-head .grow { flex: 1; }
+    .k-list { flex: 1; overflow: auto; margin: 0; padding: 4px 0; font: .8rem/1.45 var(--font-mono); }
+    .k-row { display: flex; gap: 8px; padding: 2px 10px; border-bottom: 1px solid var(--border); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .k-row .k-txt { flex: 1; }
+    .k-row .k-ort { color: var(--muted); white-space: nowrap; }
+    .k-row .k-ort.go { cursor: pointer; text-decoration: underline; }
+    .k-row.warn { color: var(--con-warn); background: rgba(251, 191, 36, .07); }
+    .k-row.error, .k-row.fehler { color: var(--con-err); background: rgba(248, 113, 113, .07); }
+    .k-row.info { color: var(--con-info); }
+    .k-row.sys { color: var(--muted); font-style: italic; border-bottom: 0; }
+    .k-empty { color: var(--muted); padding: 6px 10px; }
+  </style>
+</head>
+<body>
+  <div class="vbar">
+    <button class="ib" id="back" type="button" title="Zurück" aria-label="Zurück">◀</button>
+    <button class="ib" id="fwd" type="button" title="Vor" aria-label="Vor">▶</button>
+    <button class="ib" id="reload" type="button" title="Neu laden" aria-label="Neu laden">⟳</button>
+    <form class="addr" id="addrForm" autocomplete="off">
+      <span>/</span><input id="addr" spellcheck="false" aria-label="Seite im Projekt" placeholder="index.html">
+    </form>
+    <select class="ib" id="width" aria-label="Breite der Vorschau" title="Bildschirmbreite simulieren">
+      <option value="">volle Breite</option>
+      <option value="375">Handy · 375</option>
+      <option value="768">Tablet · 768</option>
+      <option value="1280">Laptop · 1280</option>
+    </select>
+    <button class="ib" id="live" type="button" aria-pressed="true" title="Bei jeder Änderung automatisch neu laden">live</button>
+    <button class="ib" id="konBtn" type="button" aria-pressed="false" title="Konsole für console.log und JavaScript-Fehler">konsole<span id="badge"></span></button>
+  </div>
+  <div class="stage" id="stage">
+    <div class="msg" id="msg">Vorschau wird gestartet …</div>
+    <iframe id="frame" title="Vorschau der Webseite" hidden></iframe>
+  </div>
+  <div class="konsole" id="konsole" hidden>
+    <div class="k-head"><b>// konsole</b><span class="grow"></span><button class="ib" id="kClear" type="button">leeren</button><button class="ib" id="kClose" type="button" aria-label="Konsole schließen">✕</button></div>
+    <div class="k-list" id="kList" role="log"><div class="k-empty" id="kEmpty">Ausgaben von console.log() und JavaScript-Fehler erscheinen hier.</div></div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    var $ = function (id) { return document.getElementById(id); };
+    var params = new URLSearchParams(location.search);
+    var pid = params.get("p") || "", mode = params.get("mode") || "window";
+    var BASE = new URL("html-vorschau/", location.href).href;
+    var frame = $("frame"), addr = $("addr"), stage = $("stage");
+    var chan = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("html-editor") : null;
+    var loaded = false, pendingScroll = null, hist = [], histPos = -1, navByButton = false;
+
+    function load(k, d) { try { var v = localStorage.getItem("html-editor." + k); return v === null ? d : v; } catch (e) { return d; } }
+    function save(k, v) { try { localStorage.setItem("html-editor." + k, v); } catch (e) {} }
+    function urlOf(path) { return BASE + encodeURIComponent(pid) + "/" + path.split("/").map(encodeURIComponent).join("/"); }
+    function pathOf(href) {
+      var pre = BASE + encodeURIComponent(pid) + "/";
+      if (!href || href.indexOf(pre) !== 0) return null;
+      var rest = href.slice(pre.length).split("#")[0].split("?")[0];
+      try { return decodeURIComponent(rest); } catch (e) { return rest; }
+    }
+    function message(html) { $("msg").innerHTML = html; $("msg").hidden = false; frame.hidden = true; }
+
+    /* ---------- Hell / Dunkel folgt dem Editor ---------- */
+    window.addEventListener("storage", function (e) {
+      if (e.key !== "theme") return;
+      var r = document.documentElement;
+      if (e.newValue === "hell") r.setAttribute("data-theme", "light");
+      else if (e.newValue === "dunkel") r.setAttribute("data-theme", "dark");
+      else r.removeAttribute("data-theme");
+    });
+
+    /* ---------- Navigation ---------- */
+    function go(path, replaceHist) {
+      path = (path || "index.html").replace(/^\/+/, "");
+      var url = urlOf(path);
+      clearKonsole();
+      if (!loaded) { frame.src = url; loaded = true; }
+      else { try { frame.contentWindow.location.replace(url); } catch (e) { frame.src = url; } }
+      if (!replaceHist) navByButton = false;
+    }
+    function current() { try { return pathOf(frame.contentWindow.location.href); } catch (e) { return null; } }
+    frame.addEventListener("load", function () {
+      $("msg").hidden = true; frame.hidden = false;
+      var p = current(), w;
+      try { w = frame.contentWindow; } catch (e) {}
+      addr.value = p === null ? "(externe Seite)" : p;
+      if (!navByButton && p !== null && hist[histPos] !== p) { hist = hist.slice(0, histPos + 1); hist.push(p); histPos = hist.length - 1; }
+      navByButton = false;
+      $("back").disabled = histPos <= 0; $("fwd").disabled = histPos >= hist.length - 1;
+      try { var t = w.document.title; document.title = (t ? t + " · " : "") + "Vorschau"; } catch (e) { document.title = "Vorschau"; }
+      if (pendingScroll && w) { var s = pendingScroll; pendingScroll = null; try { w.scrollTo(s.x, s.y); setTimeout(function () { w.scrollTo(s.x, s.y); }, 60); } catch (e) {} }
+      $("reload").classList.remove("stale");
+    });
+    $("back").addEventListener("click", function () { if (histPos > 0) { histPos--; navByButton = true; go(hist[histPos], true); } });
+    $("fwd").addEventListener("click", function () { if (histPos < hist.length - 1) { histPos++; navByButton = true; go(hist[histPos], true); } });
+    $("reload").addEventListener("click", function () { reload(); });
+    $("addrForm").addEventListener("submit", function (e) { e.preventDefault(); go(addr.value.trim()); });
+
+    function reload() {
+      try {
+        var w = frame.contentWindow;
+        pendingScroll = { x: w.scrollX, y: w.scrollY };
+        clearKonsole();
+        w.location.reload();
+      } catch (e) { go(addr.value); }
+    }
+
+    // CSS ohne Flackern austauschen, sonst ganze Seite neu laden
+    function refresh(changed) {
+      var doc; try { doc = frame.contentDocument; } catch (e) {}
+      if (doc && /\.css$/i.test(changed || "")) {
+        var target = urlOf(changed), hit = false;
+        doc.querySelectorAll('link[rel~="stylesheet"]').forEach(function (l) {
+          var href = (l.href || "").split("?")[0].split("#")[0];
+          if (href === target) { l.href = href + "?v=" + Date.now(); hit = true; }
+        });
+        if (hit) return;
+      }
+      reload();
+    }
+
+    /* ---------- Breite ---------- */
+    function applyWidth() {
+      var w = $("width").value;
+      stage.classList.toggle("sized", !!w);
+      frame.style.width = w ? w + "px" : "";
+      save("vorschauBreite", w);
+    }
+    $("width").value = load("vorschauBreite", "");
+    $("width").addEventListener("change", applyWidth);
+
+    /* ---------- Live ---------- */
+    var live = load("live", "1") === "1";
+    function setLive(on) { live = on; $("live").setAttribute("aria-pressed", String(on)); save("live", on ? "1" : "0"); }
+    $("live").addEventListener("click", function () { setLive(!live); if (live && $("reload").classList.contains("stale")) reload(); });
+    setLive(live);
+
+    var refreshT = null, lastChanged = null;
+    if (chan) chan.addEventListener("message", function (e) {
+      var d = e.data || {};
+      if (d.t === "changed" && d.pid === pid && loaded) {
+        if (!live) { $("reload").classList.add("stale"); return; }
+        lastChanged = lastChanged === null || lastChanged === d.path ? d.path : "*";
+        clearTimeout(refreshT);
+        refreshT = setTimeout(function () { var c = lastChanged; lastChanged = null; refresh(c === "*" ? null : c); }, 120);
+      } else if (d.t === "show") {
+        if (d.pid !== pid) { pid = d.pid; hist = []; histPos = -1; history.replaceState(null, "", "?p=" + encodeURIComponent(pid) + "&mode=" + mode); go(d.path || "index.html"); }
+        else if (live && current() !== d.path) go(d.path);
+      } else if (d.t === "reload" && d.pid === pid && loaded) {
+        reload();
+      } else if (d.t === "gone" && d.pid === pid) {
+        message("Dieses Projekt wurde gelöscht.");
+      }
+    });
+
+    /* ---------- Konsole ---------- */
+    var counts = { err: 0, warn: 0 };
+    function setKonsole(on) {
+      $("konsole").hidden = !on; $("konBtn").setAttribute("aria-pressed", String(on)); save("konsole", on ? "1" : "0");
+    }
+    $("konBtn").addEventListener("click", function () { setKonsole($("konsole").hidden); });
+    $("kClose").addEventListener("click", function () { setKonsole(false); });
+    $("kClear").addEventListener("click", function () { clearKonsole(); });
+    setKonsole(load("konsole", "0") === "1");
+    function badge() {
+      var b = $("badge");
+      if (counts.err) { b.className = "badge err"; b.textContent = counts.err; }
+      else if (counts.warn) { b.className = "badge warn"; b.textContent = counts.warn; }
+      else { b.className = ""; b.textContent = ""; }
+    }
+    function clearKonsole() {
+      $("kList").innerHTML = "";
+      $("kList").appendChild($("kEmpty") || Object.assign(document.createElement("div"), { className: "k-empty", id: "kEmpty", textContent: "Ausgaben von console.log() und JavaScript-Fehler erscheinen hier." }));
+      counts = { err: 0, warn: 0 }; badge();
+    }
+    function addRow(d) {
+      var list = $("kList"), empty = $("kEmpty");
+      if (empty) empty.remove();
+      var row = document.createElement("div");
+      row.className = "k-row " + d.level;
+      var txt = document.createElement("span"); txt.className = "k-txt"; txt.textContent = d.text;
+      row.appendChild(txt);
+      var p = pathOf(d.datei);
+      if (p !== null && d.zeile) {
+        var ort = document.createElement("span"); ort.className = "k-ort go"; ort.textContent = p + ":" + d.zeile;
+        ort.title = "Im Editor zeigen";
+        ort.addEventListener("click", function () { if (chan) chan.postMessage({ t: "goto", pid: pid, path: p, line: d.zeile }); });
+        row.appendChild(ort);
+      }
+      list.appendChild(row);
+      while (list.children.length > 500) list.removeChild(list.firstChild);
+      list.scrollTop = list.scrollHeight;
+      if (d.level === "error" || d.level === "fehler") counts.err++;
+      if (d.level === "warn") counts.warn++;
+      badge();
+      if ((d.level === "fehler") && $("konsole").hidden) setKonsole(true);
+    }
+    window.addEventListener("message", function (e) {
+      var d = e.data;
+      if (!d || !d.__ideKonsole || e.origin !== location.origin) return;
+      try { if (e.source !== frame.contentWindow) return; } catch (err) { return; }
+      if (d.level === "clear") { clearKonsole(); return; }
+      addRow(d);
+    });
+
+    /* ---------- Start ---------- */
+    function swBereit() {
+      if (!("serviceWorker" in navigator) || !window.isSecureContext) return Promise.reject(new Error("nosw"));
+      return navigator.serviceWorker.register("html-editor-sw.js", { scope: "./html-vorschau/" }).then(function (reg) {
+        return new Promise(function (resolve, reject) {
+          var tries = 0;
+          (function check() {
+            if (reg.active && reg.active.state === "activated") { resolve(); return; }
+            if (++tries > 100) { reject(new Error("timeout")); return; }
+            setTimeout(check, 50);
+          })();
+        });
+      });
+    }
+    if (!pid) { message("Kein Projekt angegeben. Öffne die Vorschau über den <b>HTML-Editor</b>."); return; }
+    applyWidth();
+    swBereit().then(function () { go(params.get("f") || "index.html"); }).catch(function () {
+      message("<b>Die Vorschau kann hier nicht starten.</b><br><br>Sie braucht einen sogenannten Service Worker. " +
+        "Den erlaubt Firefox nicht in privaten Fenstern und nicht, wenn Cookies und Websitedaten blockiert sind. " +
+        "Öffne den Editor in einem normalen Fenster.");
+    });
+  })();
+  </script>
+</body>
+</html>

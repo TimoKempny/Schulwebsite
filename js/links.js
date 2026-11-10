@@ -59,6 +59,14 @@ const EINTRAEGE = [
   },
   {
     typ: "tool",
+    titel: "HTML-Editor",
+    beschreibung: "Webseiten mit mehreren HTML-Seiten, CSS und Bildern im Browser bauen – mit Live-Vorschau, HTML-/CSS-Prüfung und W3C-Validator",
+    url: "html-editor.html",
+    fach: ["Kom1"],
+    neu: "2026-11-10"
+  },
+  {
+    typ: "tool",
     titel: "Python-Editor",
     beschreibung: "Python-Programme im Browser schreiben und ausführen – mit input() und Fehlertipps",
     url: "python-editor.html",

@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HTML-Editor · Unterricht</title>
+  <meta name="description" content="Webseiten mit mehreren HTML-Seiten, CSS und Bildern im Browser bauen – mit Live-Vorschau und HTML-/CSS-Prüfung.">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "hell") document.documentElement.setAttribute("data-theme", "light");
+      if (t === "dunkel") document.documentElement.setAttribute("data-theme", "dark");
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    /* ---------- Farben der Syntax-Hervorhebung ---------- */
+    :root {
+      --syn-tag: #0f766e; --syn-attr: #6d28d9; --syn-str: #a16207; --syn-num: #c2410c; --syn-com: #7b8a87;
+      --syn-punc: #6b7a77; --syn-doc: #be185d; --syn-prop: #1d4ed8; --syn-sel: #0f766e; --syn-cls: #b45309;
+      --syn-at: #be185d; --syn-kw: #be185d; --syn-fn: #1d4ed8; --syn-ty: #6d28d9;
+      --mark-err: rgba(185, 28, 28, .12); --mark-warn: rgba(180, 83, 9, .12); --hint: #1d4ed8;
+      --sel: rgba(15, 118, 110, .22);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --syn-tag: #2dd4bf; --syn-attr: #c4b5fd; --syn-str: #fbbf24; --syn-num: #fb923c; --syn-com: #6b7f7b;
+        --syn-punc: #8aa09b; --syn-doc: #f472b6; --syn-prop: #93c5fd; --syn-sel: #2dd4bf; --syn-cls: #fcd34d;
+        --syn-at: #f472b6; --syn-kw: #f472b6; --syn-fn: #93c5fd; --syn-ty: #c4b5fd;
+        --mark-err: rgba(248, 113, 113, .14); --mark-warn: rgba(251, 191, 36, .12); --hint: #93c5fd;
+        --sel: rgba(45, 212, 191, .25);
+      }
+    }
+    :root[data-theme="dark"] {
+      --syn-tag: #2dd4bf; --syn-attr: #c4b5fd; --syn-str: #fbbf24; --syn-num: #fb923c; --syn-com: #6b7f7b;
+      --syn-punc: #8aa09b; --syn-doc: #f472b6; --syn-prop: #93c5fd; --syn-sel: #2dd4bf; --syn-cls: #fcd34d;
+      --syn-at: #f472b6; --syn-kw: #f472b6; --syn-fn: #93c5fd; --syn-ty: #c4b5fd;
+      --mark-err: rgba(248, 113, 113, .14); --mark-warn: rgba(251, 191, 36, .12); --hint: #93c5fd;
+      --sel: rgba(45, 212, 191, .25);
+    }
+
+    main.ide-main { padding-bottom: 16px; }
+    .ide-wrap { padding-top: 12px; max-width: none; padding-left: 16px; padding-right: 16px; }
+
+    /* ---------- Werkzeugleiste ---------- */
+    .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .bar .spacer { flex: 1; }
+    .fname {
+      display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding-left: 10px; min-width: 0;
+    }
+    .fname:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .fname span { font-family: var(--font-mono); font-size: .8rem; color: var(--accent); }
+    .fname select {
+      border: 0; background: transparent; color: var(--text); font: .85rem var(--font-mono); padding: 8px 6px; max-width: 220px; outline: none;
+    }
+    .fname select option { background: var(--surface); color: var(--text); }
+    .btn-pv[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+    .zoom { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: var(--surface); }
+    .zoom button { border: 0; background: transparent; color: var(--muted); font-family: var(--font-mono); font-size: .8rem; padding: 7px 11px; cursor: pointer; }
+    .zoom button:hover { color: var(--text); background: var(--accent-soft); }
+    .zoom span { font-family: var(--font-mono); font-size: .75rem; color: var(--muted); padding: 7px 4px; }
+    .menu { position: relative; }
+    .menu > summary { list-style: none; }
+    .menu > summary::-webkit-details-marker { display: none; }
+    .menu-list {
+      position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; min-width: 210px; padding: 6px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow);
+    }
+    .menu-list button {
+      display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--text); font: .82rem var(--font-mono);
+      padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    }
+    .menu-list button:hover, .menu-list button:focus-visible { background: var(--accent-soft); color: var(--accent); }
+    .menu-list button.danger:hover { background: var(--bad-soft); color: var(--bad); }
+    .menu-list hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+
+    /* ---------- Arbeitsbereich ---------- */
+    .ws { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+    @media (min-width: 960px) {
+      .ws { grid-template-columns: 232px minmax(0, 1fr); height: calc(100vh - 120px); min-height: 480px; }
+      .ws.pv { grid-template-columns: 232px minmax(0, 1fr) 12px minmax(240px, var(--pv, 42%)); column-gap: 0; }
+      .ws.pv > .side { margin-right: 12px; }
+    }
+    .splitter { display: none; }
+    @media (min-width: 960px) {
+      .ws.pv .splitter { display: flex; justify-content: center; cursor: col-resize; touch-action: none; outline: none; }
+      .splitter::before { content: ""; width: 4px; height: 48px; margin: auto; border-radius: 4px; background: var(--border); transition: background .15s; }
+      .splitter:hover::before, .splitter:focus-visible::before, .splitter.drag::before { background: var(--accent); height: 80px; }
+      body.splitting { cursor: col-resize; user-select: none; }
+      body.splitting iframe { pointer-events: none; }
+    }
+    .pane {
+      display: flex; flex-direction: column; min-height: 0; min-width: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+    }
+    .pane-head {
+      display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: .78rem; color: var(--muted); background: var(--surface-2); min-height: 36px;
+    }
+    .pane-head b { color: var(--text); font-weight: 600; white-space: nowrap; }
+    .side .pane-head { gap: 2px; padding-right: 4px; }
+    .side .pane-head .ib { padding: 3px 5px; }
+    .pane-head .grow { flex: 1; }
+    .ib {
+      border: 1px solid transparent; background: none; color: var(--muted); font: .78rem var(--font-mono); cursor: pointer;
+      padding: 3px 7px; border-radius: 6px; line-height: 1.3; white-space: nowrap;
+    }
+    .ib:hover:not(:disabled) { color: var(--accent); border-color: var(--border); background: var(--surface); }
+    .ib:disabled { opacity: .4; cursor: default; }
+
+    /* ---------- Dateien ---------- */
+    .side { min-height: 220px; }
+    @media (max-width: 959px) { .side { max-height: 300px; } }
+    .tree { flex: 1; overflow: auto; padding: 4px 0; font: .82rem/1.3 var(--font-mono); outline: none; }
+    .tree.drop { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+    .row {
+      display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px calc(8px + var(--d, 0) * 14px); cursor: pointer;
+      color: var(--text); border-left: 2px solid transparent; position: relative; user-select: none;
+    }
+    .row:hover { background: var(--surface-2); }
+    .row.active { background: var(--accent-soft); border-left-color: var(--accent); }
+    .row.dirsel { background: var(--surface-2); }
+    .row.drop { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+    .row .ico { width: 1.6em; flex: none; text-align: center; font-size: .72rem; color: var(--muted); font-weight: 700; }
+    .row .ico.html { color: var(--syn-doc); } .row .ico.css { color: var(--syn-prop); } .row .ico.js { color: var(--syn-cls); }
+    .row .ico.img { color: var(--ok); } .row .ico.dir { color: var(--accent); }
+    .row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+    .dot.e { background: var(--bad); } .dot.w { background: var(--new); }
+    .row .acts { display: none; gap: 0; flex: none; }
+    .row:hover .acts, .row:focus-within .acts { display: flex; }
+    .row:hover .dot, .row:focus-within .dot { display: none; }
+    .row .acts button { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 4px; font: .8rem var(--font-mono); border-radius: 4px; }
+    .row .acts button:hover { color: var(--accent); background: var(--surface); }
+    .row .acts button.del:hover { color: var(--bad); }
+    .tree-empty { color: var(--muted); padding: 10px 12px; font-size: .78rem; }
+    .side-foot { border-top: 1px solid var(--border); padding: 8px 10px; font: .72rem/1.45 var(--font-mono); color: var(--muted); }
+    .side-foot b { color: var(--ok); font-weight: 600; }
+
+    /* ---------- Editor ---------- */
+    .edcol { display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+    .edpane { flex: 1; }
+    @media (max-width: 959px) { .edpane { height: 70vh; flex: none; } }
+    .tabs { display: flex; align-items: stretch; overflow-x: auto; background: var(--surface-2); border-bottom: 1px solid var(--border); min-height: 36px; scrollbar-width: thin; }
+    .tab {
+      display: flex; align-items: center; gap: 6px; padding: 0 6px 0 12px; border-right: 1px solid var(--border);
+      font: .8rem var(--font-mono); color: var(--muted); cursor: pointer; white-space: nowrap; background: transparent; border-top: 2px solid transparent;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--surface); color: var(--text); border-top-color: var(--accent); }
+    .tab .x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: .85rem; line-height: 1; padding: 3px 5px; border-radius: 4px; }
+    .tab .x:hover { background: var(--surface-2); color: var(--bad); }
+    .tab .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .edhost { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; --ed-fs: 14px; --ed-lh: 22px; --ed-pad: 12px; }
+    .ed-scroll { position: relative; flex: 1; overflow: auto; min-height: 0; background: var(--surface); }
+    .ed-scroll, .tree, .plist, .tabs, .viewer { scrollbar-color: var(--border) transparent; }
+    .ed-inner { display: grid; grid-template-columns: auto minmax(0, 1fr); min-width: max-content; min-height: 100%; }
+    .gutter {
+      position: sticky; left: 0; z-index: 2; background: var(--surface-2); color: var(--muted);
+      text-align: right; padding: var(--ed-pad) 10px var(--ed-pad) 12px; user-select: none; border-right: 1px solid var(--border);
+    }
+    .gutter div { height: var(--ed-lh); }
+    .gutter .e { color: var(--bad); font-weight: 700; }
+    .gutter .w { color: var(--new); font-weight: 700; }
+    .code { position: relative; min-width: max-content; }
+    .code pre, .code textarea, .gutter {
+      font-family: var(--font-mono); font-size: var(--ed-fs); line-height: var(--ed-lh); tab-size: 2; -moz-tab-size: 2;
+    }
+    .code pre {
+      margin: 0; padding: var(--ed-pad) 32px var(--ed-pad) 14px; white-space: pre; color: var(--text);
+      min-height: 100%; pointer-events: none; position: relative; z-index: 1;
+    }
+    .code textarea {
+      position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
+      margin: 0; border: 0; outline: none; resize: none; overflow: hidden;
+      padding: var(--ed-pad) 32px var(--ed-pad) 14px; white-space: pre; overflow-wrap: normal;
+      background: transparent; color: transparent; caret-color: var(--text);
+    }
+    .code textarea::selection { background: var(--sel); color: transparent; }
+    .marks { position: absolute; left: 0; right: 0; top: 0; z-index: 0; pointer-events: none; }
+    .marks div { position: absolute; left: 0; right: 0; height: var(--ed-lh); }
+    .marks .e { background: var(--mark-err); }
+    .marks .w { background: var(--mark-warn); }
+    .marks .flash { background: var(--accent-soft); }
+    .t-tag { color: var(--syn-tag); font-weight: 600; } .t-attr { color: var(--syn-attr); } .t-str { color: var(--syn-str); }
+    .t-num { color: var(--syn-num); } .t-com { color: var(--syn-com); font-style: italic; } .t-punc { color: var(--syn-punc); }
+    .t-doc { color: var(--syn-doc); } .t-ent { color: var(--syn-num); } .t-prop { color: var(--syn-prop); }
+    .t-sel { color: var(--syn-sel); font-weight: 600; } .t-cls, .t-id { color: var(--syn-cls); } .t-pseudo { color: var(--syn-attr); }
+    .t-at { color: var(--syn-at); font-weight: 600; } .t-val { color: var(--text); } .t-kw { color: var(--syn-kw); font-weight: 600; }
+    .t-fn { color: var(--syn-fn); } .t-ty { color: var(--syn-ty); }
+    .ed-foot { padding: 5px 12px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: .72rem; color: var(--muted); display: flex; gap: 4px 14px; flex-wrap: wrap; }
+    .ed-foot kbd { font-family: var(--font-mono); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--text); background: var(--surface); }
+    .ed-foot .grow { flex: 1; }
+    .ed-foot .saved { color: var(--ok); }
+
+    .empty-ed { margin: auto; text-align: center; color: var(--muted); padding: 24px; font-size: .92rem; max-width: 440px; }
+    .empty-ed p { margin: 0 0 12px; }
+    .viewer { flex: 1; overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+    .viewer .imgbox {
+      max-width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 10px;
+      background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px;
+    }
+    .viewer img { display: block; max-width: 100%; max-height: 46vh; }
+    .viewer .info { font: .8rem var(--font-mono); color: var(--muted); }
+    .snip { width: 100%; max-width: 640px; }
+    .snip .lbl { font: .75rem var(--font-mono); color: var(--muted); margin-bottom: 4px; }
+    .snip .codeline { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 6px 6px 10px; }
+    .snip code { flex: 1; font: .82rem var(--font-mono); overflow-x: auto; white-space: pre; }
+
+    /* ---------- Prüfen ---------- */
+    .probs { flex: none; height: var(--probs-h, 190px); }
+    .probs.zu { height: auto; }
+    .probs.zu .plist { display: none; }
+    .probs.zu .pane-head { border-bottom: 0; }
+    .ph-count { display: inline-flex; gap: 6px; }
+    .cnt { font-size: .72rem; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--border); }
+    .cnt.e { color: var(--bad); border-color: var(--bad); } .cnt.w { color: var(--new); border-color: var(--new); } .cnt.ok { color: var(--ok); border-color: var(--ok); }
+    .plist { flex: 1; overflow: auto; margin: 0; padding: 4px 0; list-style: none; font-size: .86rem; }
+    .plist li { display: flex; gap: 10px; padding: 5px 12px; cursor: pointer; border-left: 3px solid transparent; }
+    .plist li:hover, .plist li:focus-visible { background: var(--surface-2); outline: none; }
+    .plist li.error { border-left-color: var(--bad); } .plist li.warning { border-left-color: var(--new); } .plist li.hint { border-left-color: var(--hint); }
+    .plist .pos { font: .75rem/1.6 var(--font-mono); color: var(--muted); white-space: nowrap; min-width: 4.5em; }
+    .plist .sev { font-weight: 700; }
+    .plist .error .sev { color: var(--bad); } .plist .warning .sev { color: var(--new); } .plist .hint .sev { color: var(--hint); }
+    .plist .tip { display: block; color: var(--muted); font-size: .92em; }
+    .plist .src { font: .68rem var(--font-mono); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; margin-left: 6px; color: var(--muted); vertical-align: 1px; }
+    .plist .note { color: var(--muted); cursor: default; font-size: .84rem; }
+    .plist .note:hover { background: none; }
+    .btn-w3c[aria-busy="true"] { opacity: .6; cursor: progress; }
+
+    /* ---------- Vorschau ---------- */
+    .pvpane { min-height: 0; }
+    @media (max-width: 959px) { .pvpane { height: 75vh; } }
+    .pvpane iframe { flex: 1; border: 0; width: 100%; min-height: 0; background: var(--surface-2); }
+
+    /* ---------- Dialog ---------- */
+    dialog.dlg {
+      border: 1px solid var(--border); border-radius: 14px; padding: 0; background: var(--surface); color: var(--text);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .3); width: min(460px, calc(100% - 32px));
+    }
+    dialog.dlg::backdrop { background: rgba(10, 20, 18, .45); }
+    .dlg form { padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .dlg h2 { font: 600 1rem var(--font-mono); margin: 0; }
+    .dlg h2::before { content: "// "; color: var(--accent); }
+    .dlg p { margin: 0; color: var(--muted); font-size: .92rem; }
+    .dlg .inp { width: 100%; font-family: var(--font-mono); }
+    .dlg .err { color: var(--bad); font-size: .85rem; min-height: 1.2em; margin-top: -6px; }
+    .dlg .choices { display: flex; flex-direction: column; gap: 6px; }
+    .dlg .choice { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+    .dlg .choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+    .dlg .choice input { margin-top: 4px; accent-color: var(--accent); }
+    .dlg .choice b { display: block; font-size: .92rem; }
+    .dlg .choice span { color: var(--muted); font-size: .84rem; }
+    .dlg .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+    .dlg .btn.danger { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+      transition: opacity .18s, transform .18s; background: #142120; color: #e4eeec; font: .82rem/1.4 var(--font-mono);
+      padding: 9px 14px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0, 0, 0, .2); z-index: 50; max-width: calc(100% - 32px);
+    }
+    .toast::before { content: "> "; color: #2dd4bf; }
+    .toast.on { opacity: 1; transform: translate(-50%, 0); }
+    @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container topbar">
+      <div class="brand"><a href="index.html" title="Zur Übersicht">~/<span>unterricht</span></a><span class="sep">/</span><span class="here">html-editor</span></div>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Farbschema wechseln">theme: auto</button>
+    </div>
+  </header>
+
+  <main class="ide-main">
+    <div class="container ide-wrap">
+      <div class="bar">
+        <label class="fname" title="Projekt wechseln">
+          <span>projekt</span>
+          <select id="projSel" aria-label="Projekt"></select>
+        </label>
+        <details class="menu" id="projMenu">
+          <summary class="btn btn-ghost" title="Projekte verwalten">Projekt ▾</summary>
+          <div class="menu-list" role="menu">
+            <button type="button" data-act="neu">Neues Projekt …</button>
+            <button type="button" data-act="zip-oeffnen">ZIP-Datei öffnen …</button>
+            <button type="button" data-act="ordner-oeffnen">Ordner öffnen …</button>
+            <hr>
+            <button type="button" data-act="umbenennen">Umbenennen …</button>
+            <button type="button" data-act="kopie">Kopie anlegen</button>
+            <button type="button" class="danger" data-act="loeschen">Löschen …</button>
+          </div>
+        </details>
+        <button class="btn btn-ghost" id="zipBtn" type="button" title="Ganzes Projekt als ZIP-Datei herunterladen – zum Abgeben, Mitnehmen oder Hochladen auf einen Webserver">ZIP speichern</button>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-pv" id="pvBtn" type="button" aria-pressed="false" title="Live-Vorschau neben dem Code (Strg + Enter)">▶ Vorschau</button>
+        <button class="btn btn-ghost" id="winBtn" type="button" title="Live-Vorschau in einem eigenen Fenster, z. B. für einen zweiten Bildschirm">↗ Eigenes Fenster</button>
+        <span class="zoom" role="group" aria-label="Schriftgröße">
+          <button type="button" id="fsDown" aria-label="Schrift kleiner">A−</button>
+          <span id="fsVal">14</span>
+          <button type="button" id="fsUp" aria-label="Schrift größer">A+</button>
+        </span>
+      </div>
+
+      <div class="ws" id="ws">
+        <aside class="pane side" aria-label="Dateien">
+          <div class="pane-head">
+            <b>// dateien</b><span class="grow"></span>
+            <button class="ib" id="newFileBtn" type="button" title="Neue Datei" aria-label="Neue Datei">+datei</button>
+            <button class="ib" id="newDirBtn" type="button" title="Neuer Ordner" aria-label="Neuer Ordner">+ordner</button>
+          </div>
+          <div class="tree" id="tree" role="tree" aria-label="Dateien im Projekt"></div>
+          <div class="side-foot">
+            <button class="btn btn-ghost" id="upBtn" type="button" style="width:100%;margin-bottom:6px" title="Bilder und andere Dateien ins Projekt laden – oder einfach hierher ziehen">⇪ Dateien hochladen</button>
+            <span id="saveState">Alles wird automatisch im Browser gespeichert.</span>
+          </div>
+        </aside>
+
+        <div class="edcol">
+          <section class="pane edpane" aria-label="Editor">
+            <div class="tabs" id="tabs" role="tablist" aria-label="Geöffnete Dateien"></div>
+            <div class="edhost" id="edHost"></div>
+            <div class="ed-foot">
+              <span id="caretPos">–</span>
+              <span id="langInfo"></span>
+              <span class="grow"></span>
+              <span><kbd>Tab</kbd> einrücken · <kbd>!</kbd>+<kbd>Tab</kbd> Grundgerüst</span>
+              <span><kbd>Strg</kbd>+<kbd>#</kbd> Kommentar</span>
+            </div>
+          </section>
+
+          <section class="pane probs" id="probs" aria-label="Prüfung">
+            <div class="pane-head">
+              <button class="ib" id="probsToggle" type="button" aria-expanded="true" title="Ein- und ausklappen">▾</button>
+              <b>// prüfen</b>
+              <span class="ph-count" id="probCount"></span>
+              <span class="grow"></span>
+              <button class="btn btn-ghost btn-w3c" id="w3cBtn" type="button" title="Die aktuelle Datei an den offiziellen Validator des W3C schicken">W3C-Prüfung</button>
+            </div>
+            <ul class="plist" id="plist" aria-live="polite"></ul>
+          </section>
+        </div>
+
+        <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Breite der Vorschau" tabindex="0" title="Ziehen zum Anpassen, Doppelklick = Standard"></div>
+
+        <section class="pane pvpane" id="pvPane" aria-label="Vorschau" hidden>
+          <div class="pane-head"><b>// vorschau</b><span class="grow"></span>
+            <button class="ib" id="pvWin" type="button" title="In eigenem Fenster öffnen">↗ fenster</button>
+            <button class="ib" id="pvClose" type="button" aria-label="Vorschau schließen" title="Vorschau schließen">✕</button>
+          </div>
+          <iframe id="pvFrame" title="Live-Vorschau"></iframe>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="mono">© 2026</span>
+      <nav>
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+
+  <dialog class="dlg" id="dlg">
+    <form method="dialog" id="dlgForm">
+      <h2 id="dlgTitle"></h2>
+      <p id="dlgText"></p>
+      <input class="inp" id="dlgInput" spellcheck="false" autocomplete="off">
+      <div class="err" id="dlgErr"></div>
+      <div class="choices" id="dlgChoices"></div>
+      <div class="btns">
+        <button class="btn btn-ghost" type="button" id="dlgCancel">Abbrechen</button>
+        <button class="btn" type="submit" id="dlgOk">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input type="file" id="upIn" multiple hidden>
+  <input type="file" id="zipIn" accept=".zip,application/zip" hidden>
+  <input type="file" id="dirIn" webkitdirectory hidden>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/app.js"></script>
+  <script src="js/html-editor-db.js"></script>
+  <script src="js/html-editor-zip.js"></script>
+  <script src="js/html-editor-pruefen.js"></script>
+  <script src="js/html-editor.js"></script>
+</body>
+</html>
