@@ -3,7 +3,7 @@
    Nur diese Datei muss für neue Tools/Seiten geändert werden.
 
    Felder pro Eintrag:
-     typ          "tool" | "skript" | "quiz" | "materialien" | "info" | "link"   (Pflicht)
+     typ          "tool" | "editor" | "skript" | "quiz" | "materialien" | "info" | "link"   (Pflicht)
      titel        Text auf der Kachel                   (Pflicht)
      url          Pfad zur Seite (z. B. "tools/timer.html")
                   oder volle Adresse ("https://...")    (Pflicht)
@@ -19,6 +19,7 @@
 
 const TYPEN = [
   { id: "tool",   titel: "Tools" },
+  { id: "editor", titel: "Editoren" },
   { id: "skript", titel: "Skripte" },
   { id: "quiz",   titel: "Quizze & Übungen" },
   { id: "materialien", titel: "Materialien" },
@@ -49,28 +50,6 @@ const EINTRAEGE = [
     beschreibung: "Farbe raussuchen und Hexcode und RGB bekommen",
     url: "farbwaehler.html",
     fach: ["Informatik"]
-  },
-  {
-    typ: "tool",
-    titel: "C-Compiler",
-    beschreibung: "C-Programme im Browser schreiben und kompilieren",
-    url: "c-editor.html",
-    fach: ["Prog"]
-  },
-  {
-    typ: "tool",
-    titel: "HTML-Editor",
-    beschreibung: "Webseiten mit mehreren HTML-Seiten, CSS und Bildern im Browser bauen – mit Live-Vorschau, HTML-/CSS-Prüfung und W3C-Validator",
-    url: "html-editor.html",
-    fach: ["Kom1"],
-    neu: "2026-11-10"
-  },
-  {
-    typ: "tool",
-    titel: "Python-Editor",
-    beschreibung: "Python-Programme im Browser schreiben und ausführen – mit input() und Fehlertipps",
-    url: "python-editor.html",
-    fach: ["SAE"]
   },
   {
     typ: "tool",
@@ -124,6 +103,29 @@ const EINTRAEGE = [
     url: "ipv4.html",
     fach: ["ITS"],
     neu: "2026-11-06"
+  },
+  // ---------- Editoren ----------
+  {
+    typ: "editor",
+    titel: "HTML-Editor",
+    beschreibung: "Webseiten mit mehreren HTML-Seiten, CSS und Bildern im Browser bauen – mit Live-Vorschau, HTML-/CSS-Prüfung und W3C-Validator",
+    url: "html-editor.html",
+    fach: ["Kom1"],
+    neu: "2026-11-10"
+  },
+  {
+    typ: "editor",
+    titel: "C-Editor",
+    beschreibung: "C-Programme im Browser schreiben und kompilieren",
+    url: "c-editor.html",
+    fach: ["Prog"]
+  },
+  {
+    typ: "editor",
+    titel: "Python-Editor",
+    beschreibung: "Python-Programme im Browser schreiben und ausführen – mit input() und Fehlertipps",
+    url: "python-editor.html",
+    fach: ["SAE"]
   },
   // ---------- Infos & Organisation ----------
   {
