@@ -53,6 +53,14 @@ const EINTRAEGE = [
   },
   {
     typ: "tool",
+    titel: "Vergleiche & logische Operatoren",
+    beschreibung: "==, <, and/&&, or/||, not/! verstehen, Ausdrücke Schritt für Schritt auswerten und in drei Stufen üben – umschaltbar zwischen Python und C",
+    url: "operatoren.html",
+    fach: ["SAE", "Prog"],
+    neu: "2026-11-10"
+  },
+  {
+    typ: "tool",
     titel: "Das Netz der Netze",
     beschreibung: "Vom weltweiten Internet bis ins Schulnetz hineinzoomen und den Weg eines Datenpakets verfolgen",
     url: "netzkarte.html",

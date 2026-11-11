@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vergleiche &amp; logische Operatoren · Unterricht</title>
+  <meta name="description" content="Vergleichsoperatoren und logische Operatoren in Python und C verstehen, Ausdrücke Schritt für Schritt auswerten und in drei Stufen üben.">
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "hell") document.documentElement.setAttribute("data-theme", "light");
+      if (t === "dunkel") document.documentElement.setAttribute("data-theme", "dark");
+    } catch (e) {}
+    // Sprache vor dem Zeichnen setzen: ?sprache=c / ?sprache=python, sonst zuletzt gewählt, sonst Python
+    (function () {
+      var l = "py";
+      try { l = localStorage.getItem("op-lang") || l; } catch (e) {}
+      var m = /[?&]sprache=([a-z]+)/i.exec(location.search);
+      if (m) l = /^c$/i.test(m[1]) ? "c" : "py";
+      document.documentElement.setAttribute("data-lang", l === "c" ? "c" : "py");
+    })();
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+     <link rel="icon" href="favicon.svg" type="image/svg+xml">
+   <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    /* ---------- Sprachumschaltung ---------- */
+    html[data-lang="py"] .only-c, html[data-lang="c"] .only-py { display: none !important; }
+    .ref-bar .toolbar { justify-content: space-between; }
+    .lang-switch { display: flex; align-items: center; gap: 8px; }
+    .lang-switch .flabel { white-space: nowrap; }
+    .lang-switch .chip { font-weight: 600; }
+    @media (max-width: 720px) { .lang-switch { width: 100%; } }
+
+    /* ---------- Seitenaufbau ---------- */
+    .op-section { margin-top: 36px; scroll-margin-top: 90px; }
+    .stack { display: grid; gap: 16px; }
+    .two { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+    @media (min-width: 900px) { .two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+    .panel > p { margin: 0 0 10px; }
+    .panel > p:last-child { margin-bottom: 0; }
+    .panel h3 { margin: 4px 0 10px; font-size: 1.05rem; }
+    .panel code, .tip code, .trace code, .feedback code, .task code, .lab-msg code, .opt code {
+      font-family: var(--font-mono); font-size: .9em;
+      background: var(--surface-2); padding: 1px 6px; border-radius: 5px;
+    }
+    .panel pre {
+      margin: 0; font-family: var(--font-mono); font-size: .88rem; line-height: 1.55;
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; overflow-x: auto;
+    }
+    .panel pre code { background: none; padding: 0; }
+    .muted { color: var(--muted); }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+    .op-table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+    .op-table th {
+      font-family: var(--font-mono); font-size: .76rem; font-weight: 600; color: var(--muted);
+      text-align: left; background: var(--surface-2); padding: 8px 12px;
+    }
+    .op-table td { padding: 9px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
+    .op-table td.k code { color: var(--accent); background: var(--accent-soft); font-weight: 700; font-size: 1rem; }
+    .op-table .tv { font-family: var(--font-mono); font-weight: 700; }
+    .op-table td code { white-space: nowrap; }
+    .tv.t { color: var(--ok); }
+    .tv.f { color: var(--bad); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+    .op-table th.cur, .op-table td.cur { background: var(--accent-soft); }
+
+    .tip {
+      border-left: 3px solid var(--accent); background: var(--surface-2);
+      border-radius: 0 10px 10px 0; padding: 10px 14px; margin: 0;
+    }
+    .tip.warn { border-left-color: var(--new); }
+    .tip b.lbl { font-family: var(--font-mono); font-size: .8rem; color: var(--accent); display: block; margin-bottom: 2px; }
+    .tip.warn b.lbl { color: var(--new); }
+
+    /* Wahrheitstafel-Demo */
+    .tt-toggles { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .tt-btn {
+      font: 600 .95rem var(--font-mono); cursor: pointer;
+      border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px;
+      background: var(--surface); color: var(--text);
+    }
+    .tt-btn .tv { margin-left: 6px; }
+    .tt-btn:hover { border-color: var(--accent); }
+    .op-table tr.hit td { background: var(--accent-soft); }
+    .op-table tr.hit td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+
+    ol.prec { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; }
+    ol.prec li::marker { font-family: var(--font-mono); color: var(--accent); }
+
+    /* ---------- Labor ---------- */
+    .lab { display: grid; gap: 14px; }
+    .vars { display: flex; flex-wrap: wrap; gap: 10px; }
+    .varbox {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding-left: 12px;
+    }
+    .varbox:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .varbox span { font: 700 .95rem var(--font-mono); color: var(--accent); }
+    .varbox .inp { border: 0; background: transparent; width: 76px; box-shadow: none; }
+    .expr-inp { width: 100%; font-size: 1.1rem; padding: 11px 14px; }
+    .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+    .presets .chip { text-transform: none; }
+    .trace { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+    .trace li {
+      display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 2px 8px;
+      padding: 8px 10px; border-radius: 8px;
+    }
+    .trace li:nth-child(odd) { background: var(--bg); }
+    .trace .nr { font: .78rem var(--font-mono); color: var(--muted); padding-top: 4px; }
+    .trace .ex { font: 600 1.02rem/1.5 var(--font-mono); overflow-wrap: anywhere; }
+    .trace .note { grid-column: 2; font-size: .9rem; color: var(--muted); }
+    .trace .note code { color: var(--text); }
+    .trace mark { background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 0 3px; outline: 1px solid var(--accent); }
+    .trace li.final .ex { font-size: 1.25rem; }
+    .lab-msg { border-radius: 10px; padding: 10px 14px; background: var(--bad-soft); color: var(--text); border-left: 4px solid var(--bad); }
+    .lab-msg b { color: var(--bad); font-family: var(--font-mono); }
+
+    /* ---------- Üben ---------- */
+    .settings { display: flex; flex-wrap: wrap; gap: 14px 28px; margin-bottom: 16px; }
+    .setting { display: grid; gap: 6px; }
+    .pr-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+    @media (min-width: 900px) { .pr-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+    .task { display: grid; gap: 14px; align-content: start; }
+    .task-q { font-size: 1.05rem; margin: 0; }
+    .task-env { font-family: var(--font-mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; }
+    .task-env b { color: var(--text); }
+    .task-expr {
+      font: 700 clamp(1.15rem, 3.6vw, 1.6rem)/1.4 var(--font-mono);
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; overflow-wrap: anywhere;
+    }
+    .task pre.task-code {
+      margin: 0; font: 600 1rem/1.5 var(--font-mono);
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; overflow-x: auto;
+    }
+    .answers { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+    .opt {
+      text-align: left; font: inherit; color: var(--text); cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px;
+      display: flex; gap: 10px; align-items: baseline;
+    }
+    .opt .key { font: 600 .75rem var(--font-mono); color: var(--muted); }
+    .opt.code-opt { font-family: var(--font-mono); font-weight: 600; }
+    .opt.big { justify-content: center; font: 700 1.15rem var(--font-mono); }
+    .opt:hover:not(:disabled) { border-color: var(--accent); }
+    .opt:disabled { cursor: default; }
+    .opt.is-ok { border-color: var(--ok); background: var(--ok-soft); }
+    .opt.is-bad { border-color: var(--bad); background: var(--bad-soft); }
+    .opt.dim { opacity: .55; }
+
+    .tt-task td, .tt-task th { text-align: center; }
+    .tt-task td.res { width: 40%; }
+    .cellbtn {
+      min-width: 92px; cursor: pointer; font: 700 .95rem var(--font-mono);
+      border: 1px dashed var(--border); border-radius: 8px; padding: 6px 10px;
+      background: var(--surface); color: var(--muted);
+    }
+    .cellbtn:hover { border-color: var(--accent); }
+    .cellbtn.set { border-style: solid; color: var(--text); }
+    .cellbtn.is-ok { border-color: var(--ok); background: var(--ok-soft); }
+    .cellbtn.is-bad { border-color: var(--bad); background: var(--bad-soft); }
+
+    .feedback {
+      border-radius: 10px; padding: 12px 14px; border-left: 4px solid var(--muted);
+      background: var(--surface-2); display: grid; gap: 8px;
+    }
+    .feedback .fb-title { font-family: var(--font-mono); font-weight: 700; }
+    .feedback.ok { border-color: var(--ok); background: var(--ok-soft); animation: pop .35s ease; }
+    .feedback.ok .fb-title { color: var(--ok); }
+    .feedback.bad { border-color: var(--bad); background: var(--bad-soft); }
+    .feedback.bad .fb-title { color: var(--bad); }
+    .feedback.sol { border-color: var(--accent); background: var(--accent-soft); }
+    .feedback.sol .fb-title { color: var(--accent); }
+    .feedback p { margin: 0; }
+    .feedback details summary { cursor: pointer; font: .85rem var(--font-mono); color: var(--accent); }
+    .feedback details .trace { margin-top: 8px; }
+    .feedback .trace li:nth-child(odd) { background: var(--surface); }
+
+    .stats { display: grid; gap: 14px; align-content: start; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+    .stat strong { font: 700 1.5rem/1.1 var(--font-mono); }
+    .stat span { font-size: .78rem; color: var(--muted); }
+    .history { display: flex; flex-wrap: wrap; gap: 4px; min-height: 14px; }
+    .history i { width: 14px; height: 14px; border-radius: 4px; background: var(--bad); }
+    .history i.ok { background: var(--ok); }
+    .shake { animation: shake .4s ease; }
+
+    @keyframes pop { 0% { transform: scale(.96); opacity: 0; } 100% { transform: none; opacity: 1; } }
+    @keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+    @media (prefers-reduced-motion: reduce) { .feedback, .shake { animation: none !important; } }
+    @media (max-width: 520px) {
+      .op-table th, .op-table td { padding: 7px 8px; }
+      .cellbtn { min-width: 70px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container topbar">
+      <div class="brand"><a href="index.html" title="Zur Übersicht">~/<span>unterricht</span></a><span class="sep">/</span><span class="here">operatoren</span></div>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Farbschema wechseln">theme: auto</button>
+    </div>
+    <div class="container hero">
+      <p class="kicker">tool · sae · prog</p>
+      <h1>Vergleiche &amp; logische Operatoren</h1>
+      <p>Wie ein Programm entscheidet, ob eine Bedingung wahr oder falsch ist: verstehen, im Labor ausprobieren und in drei Stufen üben – wahlweise in Python oder C.</p>
+    </div>
+  </header>
+
+  <nav class="ref-bar" aria-label="Abschnitte">
+    <div class="container toolbar">
+      <div class="chips">
+        <a class="chip" href="#vergleich">vergleichen</a>
+        <a class="chip" href="#logik">verknüpfen</a>
+        <a class="chip" href="#vorrang">vorrang</a>
+        <a class="chip" href="#labor">labor</a>
+        <a class="chip" href="#ueben">üben</a>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Programmiersprache">
+        <span class="flabel">sprache</span>
+        <button class="chip" type="button" data-lang="py">Python</button>
+        <button class="chip" type="button" data-lang="c">C</button>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ================= Vergleichsoperatoren ================= -->
+    <section class="container op-section" id="vergleich">
+      <div class="section-head"><h2>Vergleichsoperatoren</h2></div>
+      <div class="two">
+        <div class="panel">
+          <p>Ein Vergleich stellt eine Ja/Nein-Frage über zwei Werte. Das Ergebnis ist ein <b>Wahrheitswert</b>:
+            <span class="only-py">in Python <code>True</code> (wahr) oder <code>False</code> (falsch) vom Typ <code>bool</code>.</span>
+            <span class="only-c">in C eine ganze Zahl (<code>int</code>): <code>1</code> für wahr, <code>0</code> für falsch.</span>
+          </p>
+          <p class="muted">Beispiel mit <code>x = 7</code> und <code>y = 3</code>:</p>
+          <div class="table-wrap">
+            <table class="op-table">
+              <thead><tr><th>Operator</th><th>Bedeutung</th><th>Beispiel</th><th>Ergebnis</th></tr></thead>
+              <tbody>
+                <tr><td class="k"><code>==</code></td><td>gleich</td><td><code>x == 7</code></td><td><span class="tv" data-v="1"></span></td></tr>
+                <tr><td class="k"><code>!=</code></td><td>ungleich</td><td><code>x != y</code></td><td><span class="tv" data-v="1"></span></td></tr>
+                <tr><td class="k"><code>&lt;</code></td><td>kleiner als</td><td><code>x &lt; y</code></td><td><span class="tv" data-v="0"></span></td></tr>
+                <tr><td class="k"><code>&gt;</code></td><td>größer als</td><td><code>x &gt; y</code></td><td><span class="tv" data-v="1"></span></td></tr>
+                <tr><td class="k"><code>&lt;=</code></td><td>kleiner oder gleich</td><td><code>x &lt;= 7</code></td><td><span class="tv" data-v="1"></span></td></tr>
+                <tr><td class="k"><code>&gt;=</code></td><td>größer oder gleich</td><td><code>y &gt;= 5</code></td><td><span class="tv" data-v="0"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="stack">
+          <p class="tip warn"><b class="lbl">= oder == ?</b>
+            <code>=</code> ist eine <b>Zuweisung</b> („x bekommt den Wert 5“), <code>==</code> ist ein <b>Vergleich</b> („ist x gleich 5?“).
+            <span class="only-py">In einer Bedingung führt <code>if x = 5:</code> in Python zu einem SyntaxError.</span>
+            <span class="only-c"><code>if (x = 5)</code> wird in C trotzdem kompiliert, weist 5 zu und ist damit immer wahr. Genau deshalb ist dieser Fehler so tückisch.</span>
+          </p>
+          <p class="tip"><b class="lbl">Merkregel</b>
+            Bei <code>&lt;=</code>, <code>&gt;=</code> und <code>!=</code> steht das Gleichheitszeichen immer <b>hinten</b>. <code>=&lt;</code> oder <code>=&gt;</code> gibt es nicht.
+          </p>
+          <p class="tip only-py"><b class="lbl">Vergleichsketten</b>
+            Python erlaubt <code>1 &lt; x &lt; 10</code> wie in Mathe. Gemeint ist damit <code>1 &lt; x and x &lt; 10</code>.
+            Achtung: Das klappt <b>nur in Python</b>, in C bedeutet es etwas ganz anderes.
+          </p>
+          <p class="tip warn only-c"><b class="lbl">Keine Vergleichsketten!</b>
+            <code>1 &lt; x &lt; 10</code> wird in C von links gerechnet: erst <code>1 &lt; x</code> (ergibt 0 oder 1), dann <code>0 &lt; 10</code> bzw. <code>1 &lt; 10</code>, und das ist <b>immer wahr</b>.
+            Richtig ist: <code>x &gt; 1 &amp;&amp; x &lt; 10</code>.
+          </p>
+          <p class="tip only-py"><b class="lbl">Texte vergleichen</b>
+            <code>name == "Max"</code> funktioniert in Python direkt. Groß- und Kleinschreibung zählen: <code>"max" == "Max"</code> ist <code>False</code>.
+          </p>
+          <p class="tip only-c"><b class="lbl">Texte vergleichen</b>
+            Strings vergleicht man in C <b>nicht</b> mit <code>==</code>, sondern mit <code>strcmp(name, "Max") == 0</code> aus <code>&lt;string.h&gt;</code>.
+          </p>
+          <p class="tip"><b class="lbl">Kommazahlen</b>
+            <code>0.1 + 0.2 == 0.3</code> ist falsch, weil Kommazahlen nur ungefähr gespeichert werden. Vergleiche besser mit Toleranz:
+            <span class="only-py"><code>abs(a - b) &lt; 1e-9</code></span><span class="only-c"><code>fabs(a - b) &lt; 1e-9</code></span>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Logische Operatoren ================= -->
+    <section class="container op-section" id="logik">
+      <div class="section-head"><h2>Logische Operatoren</h2></div>
+      <div class="two">
+        <div class="panel">
+          <p>Mit logischen Operatoren verknüpft man mehrere Bedingungen zu einer.</p>
+          <div class="table-wrap">
+            <table class="op-table">
+              <thead><tr><th class="col-py">Python</th><th class="col-c">C</th><th>Name</th><th>wahr, wenn …</th></tr></thead>
+              <tbody>
+                <tr><td class="k col-py"><code>and</code></td><td class="k col-c"><code>&amp;&amp;</code></td><td>UND</td><td><b>beide</b> Seiten wahr sind</td></tr>
+                <tr><td class="k col-py"><code>or</code></td><td class="k col-c"><code>||</code></td><td>ODER</td><td><b>mindestens eine</b> Seite wahr ist</td></tr>
+                <tr><td class="k col-py"><code>not</code></td><td class="k col-c"><code>!</code></td><td>NICHT</td><td>der Wert <b>falsch</b> ist (dreht um)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:12px" class="muted">Die jeweils andere Sprache steht zum Vergleich daneben.</p>
+          <h3>Beispiel aus dem Alltag</h3>
+          <p>Ins Kino (FSK 16) darf, wer mindestens 16 ist <b>oder</b> in Begleitung kommt:</p>
+<pre class="only-py"><code>alter = int(input("Alter: "))
+begleitung = input("Mit Begleitung? (j/n) ") == "j"
+
+if alter &gt;= 16 or begleitung:
+    print("Viel Spaß im Film!")
+else:
+    print("Leider erst ab 16.")</code></pre>
+<pre class="only-c"><code>#include &lt;stdio.h&gt;
+
+int main(void) {
+    int alter;
+    char antwort;
+    printf("Alter: ");
+    scanf("%d", &amp;alter);
+    printf("Mit Begleitung? (j/n) ");
+    scanf(" %c", &amp;antwort);
+    int begleitung = (antwort == 'j');
+
+    if (alter &gt;= 16 || begleitung) {
+        printf("Viel Spass im Film!\n");
+    } else {
+        printf("Leider erst ab 16.\n");
+    }
+    return 0;
+}</code></pre>
+          <p style="margin-top:10px"><a class="only-py" href="python-editor.html">→ im Python-Editor ausprobieren</a><a class="only-c" href="c-editor.html">→ im C-Editor ausprobieren</a></p>
+        </div>
+
+        <div class="panel">
+          <h3>Wahrheitstabelle zum Anklicken</h3>
+          <p class="muted">Schalte A und B um. Die passende Zeile wird markiert.</p>
+          <div class="tt-toggles">
+            <button class="tt-btn" type="button" id="ttA">A =<span class="tv"></span></button>
+            <button class="tt-btn" type="button" id="ttB">B =<span class="tv"></span></button>
+          </div>
+          <div class="table-wrap">
+            <table class="op-table" id="ttDemo">
+              <thead><tr><th>A</th><th>B</th><th id="thAnd"></th><th id="thOr"></th><th id="thNot"></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="tip" style="margin-top:12px"><b class="lbl">Was zählt als wahr?</b>
+            <span class="only-py">Außer <code>True</code>/<code>False</code> gelten auch <code>0</code>, <code>""</code> (leerer Text), <code>[]</code> (leere Liste) und <code>None</code> als falsch. Alles andere ist wahr.</span>
+            <span class="only-c">C hat ursprünglich keinen eigenen Wahrheitstyp: <code>0</code> ist falsch, <b>jeder andere Wert</b> ist wahr. Mit <code>#include &lt;stdbool.h&gt;</code> gibt es <code>bool</code>, <code>true</code> und <code>false</code>, dahinter stecken aber trotzdem 1 und 0.</span>
+          </p>
+          <p class="tip" style="margin-top:12px"><b class="lbl">De Morgan</b>
+            <span class="only-py"><code>not (a and b)</code> ist dasselbe wie <code>not a or not b</code>.<br><code>not (a or b)</code> ist dasselbe wie <code>not a and not b</code>.</span>
+            <span class="only-c"><code>!(a &amp;&amp; b)</code> ist dasselbe wie <code>!a || !b</code>.<br><code>!(a || b)</code> ist dasselbe wie <code>!a &amp;&amp; !b</code>.</span>
+            Zieht man das NICHT in die Klammer, wird aus UND ein ODER und umgekehrt.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Vorrang & Kurzschluss ================= -->
+    <section class="container op-section" id="vorrang">
+      <div class="section-head"><h2>Vorrang &amp; Kurzschluss</h2></div>
+      <div class="two">
+        <div class="panel">
+          <h3>Was wird zuerst ausgewertet?</h3>
+          <p class="muted">Von oben (zuerst) nach unten (zuletzt):</p>
+          <ol class="prec only-py">
+            <li>Klammern <code>( )</code></li>
+            <li>Rechnen: <code>*</code> <code>/</code> <code>%</code>, dann <code>+</code> <code>-</code></li>
+            <li>Vergleiche: <code>==</code> <code>!=</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code></li>
+            <li><code>not</code></li>
+            <li><code>and</code></li>
+            <li><code>or</code></li>
+          </ol>
+          <ol class="prec only-c">
+            <li>Klammern <code>( )</code></li>
+            <li><code>!</code> und Vorzeichen <code>-</code></li>
+            <li>Rechnen: <code>*</code> <code>/</code> <code>%</code>, dann <code>+</code> <code>-</code></li>
+            <li><code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code></li>
+            <li><code>==</code> <code>!=</code></li>
+            <li><code>&amp;&amp;</code></li>
+            <li><code>||</code></li>
+          </ol>
+          <p style="margin-top:12px"><b>Merke:</b> UND bindet stärker als ODER, wie Punkt- vor Strichrechnung.
+            <span class="only-py"><code>a or b and c</code> heißt <code>a or (b and c)</code>.</span>
+            <span class="only-c"><code>a || b &amp;&amp; c</code> heißt <code>a || (b &amp;&amp; c)</code>.</span>
+          </p>
+          <p class="tip only-py"><b class="lbl">not steht tief</b><code>not x &gt; 5</code> bedeutet <code>not (x &gt; 5)</code>, weil der Vergleich zuerst ausgewertet wird.</p>
+          <p class="tip warn only-c"><b class="lbl">! steht hoch</b><code>!x &gt; 5</code> bedeutet <code>(!x) &gt; 5</code> und nicht <code>!(x &gt; 5)</code>. Setze bei <code>!</code> lieber Klammern.</p>
+          <p class="tip" style="margin-top:8px"><b class="lbl">Tipp</b>Im Zweifel Klammern setzen. Das kostet nichts und macht den Code lesbarer.</p>
+        </div>
+
+        <div class="panel">
+          <h3>Kurzschluss-Auswertung</h3>
+          <p>Logische Ausdrücke werden von <b>links nach rechts</b> ausgewertet. Sobald das Ergebnis feststeht, hört das Programm auf:</p>
+          <ul>
+            <li><span class="only-py"><code>False and …</code></span><span class="only-c"><code>0 &amp;&amp; …</code></span> ist auf jeden Fall falsch. Die rechte Seite wird nicht mehr angesehen.</li>
+            <li><span class="only-py"><code>True or …</code></span><span class="only-c"><code>1 || …</code></span> ist auf jeden Fall wahr. Auch hier wird rechts nichts mehr ausgewertet.</li>
+          </ul>
+          <p>Das ist praktisch, um Fehler zu vermeiden. Die Prüfung muss dafür <b>vorne</b> stehen:</p>
+<pre class="only-py"><code>if y != 0 and x % y == 0:     # sicher
+    print("y ist ein Teiler von x")
+
+if x % y == 0 and y != 0:     # ZeroDivisionError bei y = 0!</code></pre>
+<pre class="only-c"><code>if (y != 0 &amp;&amp; x % y == 0) {   /* sicher */
+    printf("y ist ein Teiler von x\n");
+}
+
+if (x % y == 0 &amp;&amp; y != 0) {   /* Absturz bei y = 0! */</code></pre>
+          <p style="margin-top:10px" class="muted">Probier es im Labor aus: Setze <code>y = 0</code> und wähle die Vorlage „Kurzschluss“.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Labor ================= -->
+    <section class="container op-section" id="labor">
+      <div class="section-head"><h2>Ausdruck-Labor</h2></div>
+      <div class="panel lab">
+        <p class="muted" style="margin:0">Gib einen Ausdruck mit <code>x</code>, <code>y</code> und <code>z</code> ein. Das Labor zeigt Schritt für Schritt, wie
+          <span class="only-py">Python</span><span class="only-c">C</span> ihn auswertet. Erlaubt sind ganze Zahlen,
+          <code>+ - * %</code>, Vergleiche, <span class="only-py"><code>and or not True False</code></span><span class="only-c"><code>&amp;&amp; || ! true false</code></span> und Klammern.</p>
+        <div class="vars">
+          <label class="varbox"><span>x =</span><input class="inp" id="vx" type="number" value="7" step="1" aria-label="Wert von x"></label>
+          <label class="varbox"><span>y =</span><input class="inp" id="vy" type="number" value="3" step="1" aria-label="Wert von y"></label>
+          <label class="varbox"><span>z =</span><input class="inp" id="vz" type="number" value="12" step="1" aria-label="Wert von z"></label>
+        </div>
+        <div>
+          <label class="flabel" for="expr">ausdruck</label>
+          <input class="inp expr-inp" id="expr" type="text" autocomplete="off" spellcheck="false" autocapitalize="off">
+        </div>
+        <div class="presets" id="presets" aria-label="Vorlagen"></div>
+        <div id="labOut" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ================= Üben ================= -->
+    <section class="container op-section" id="ueben">
+      <div class="section-head"><h2>Üben</h2></div>
+
+      <div class="settings">
+        <div class="setting">
+          <span class="flabel">stufe</span>
+          <div class="chips" id="lvlChips" role="group" aria-label="Schwierigkeit">
+            <button class="chip" type="button" data-lvl="1">leicht</button>
+            <button class="chip" type="button" data-lvl="2">mittel</button>
+            <button class="chip" type="button" data-lvl="3">schwer</button>
+          </div>
+        </div>
+        <div class="setting">
+          <span class="flabel">aufgabenart</span>
+          <div class="chips" id="kindChips" role="group" aria-label="Aufgabenart">
+            <button class="chip" type="button" data-kind="mix">gemischt</button>
+            <button class="chip" type="button" data-kind="eval">auswerten</button>
+            <button class="chip" type="button" data-kind="table">wahrheitstabelle</button>
+            <button class="chip" type="button" data-kind="form">bedingung finden</button>
+            <button class="chip" type="button" data-kind="trap">stolperfallen</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pr-grid">
+        <div class="panel task">
+          <span class="flabel" id="taskLabel">aufgabe</span>
+          <div id="taskBody" class="task"></div>
+          <div class="feedback" id="feedback" role="status" aria-live="polite" hidden></div>
+          <div class="row">
+            <button class="btn btn-ghost" type="button" id="solveBtn">Lösung zeigen</button>
+            <button class="btn" type="button" id="newBtn">neue Aufgabe ▶</button>
+          </div>
+        </div>
+
+        <aside class="panel stats" aria-label="Statistik">
+          <span class="flabel">statistik</span>
+          <div class="stat-grid">
+            <div class="stat"><strong id="stRight">0</strong><span>beim 1. Versuch richtig</span></div>
+            <div class="stat"><strong id="stTotal">0</strong><span>Aufgaben</span></div>
+            <div class="stat"><strong id="stStreak">0</strong><span>Serie</span></div>
+            <div class="stat"><strong id="stBest">0</strong><span>beste Serie</span></div>
+          </div>
+          <span class="flabel">letzte aufgaben</span>
+          <div class="history" id="history"></div>
+          <button class="btn btn-ghost" type="button" id="resetStats" style="justify-self:start">zurücksetzen</button>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="mono">© 2026</span>
+      <nav>
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+  <script src="js/operatoren-engine.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var E = window.OpEngine;
+    var $ = function (id) { return document.getElementById(id); };
+    var root = document.documentElement;
+    var L = root.getAttribute("data-lang") === "c" ? "c" : "py";
+    var LAB_VARS = ["x", "y", "z"];
+
+    function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function tvText(b) { return L === "py" ? (b ? "True" : "False") : (b ? "1" : "0"); }
+    function tvSpan(b) { return '<span class="tv ' + (b ? "t" : "f") + '">' + tvText(b) + "</span>"; }
+    function codeOf(ast) { return E.render(ast, L, true); }
+
+    /* ================= Sprache ================= */
+    function setLang(nl, initial) {
+      var old = L;
+      L = nl;
+      root.setAttribute("data-lang", L);
+      store("op-lang", L);
+      document.querySelectorAll(".lang-switch .chip").forEach(function (b) {
+        b.setAttribute("aria-pressed", b.getAttribute("data-lang") === L ? "true" : "false");
+      });
+      document.querySelectorAll(".tv[data-v]").forEach(function (s) {
+        var b = s.getAttribute("data-v") === "1";
+        s.textContent = tvText(b);
+        s.className = "tv " + (b ? "t" : "f");
+      });
+      document.querySelectorAll(".col-py").forEach(function (c) { c.classList.toggle("cur", L === "py"); });
+      document.querySelectorAll(".col-c").forEach(function (c) { c.classList.toggle("cur", L === "c"); });
+      renderDemo();
+      buildPresets();
+      if (!initial && old !== L) {
+        // Ausdruck im Labor in die andere Sprache übersetzen
+        try { $("expr").value = E.translate($("expr").value, old, L, LAB_VARS); } catch (e) { /* lassen wie er ist */ }
+        runLab();
+        if (task && task.kind === "trap") newTask(); else renderTask();
+      }
+    }
+    document.querySelectorAll(".lang-switch .chip").forEach(function (b) {
+      b.addEventListener("click", function () { setLang(b.getAttribute("data-lang")); });
+    });
+
+    /* ================= Wahrheitstabellen-Demo ================= */
+    var demo = { a: true, b: false };
+    function renderDemo() {
+      $("thAnd").textContent = L === "py" ? "A and B" : "A && B";
+      $("thOr").textContent = L === "py" ? "A or B" : "A || B";
+      $("thNot").textContent = L === "py" ? "not A" : "!A";
+      $("ttA").querySelector(".tv").outerHTML = tvSpan(demo.a);
+      $("ttB").querySelector(".tv").outerHTML = tvSpan(demo.b);
+      var html = "";
+      [[false, false], [false, true], [true, false], [true, true]].forEach(function (r) {
+        var hit = r[0] === demo.a && r[1] === demo.b;
+        html += '<tr class="' + (hit ? "hit" : "") + '"><td>' + tvSpan(r[0]) + "</td><td>" + tvSpan(r[1]) + "</td><td>" +
+          tvSpan(r[0] && r[1]) + "</td><td>" + tvSpan(r[0] || r[1]) + "</td><td>" + tvSpan(!r[0]) + "</td></tr>";
+      });
+      $("ttDemo").querySelector("tbody").innerHTML = html;
+    }
+    $("ttA").addEventListener("click", function () { demo.a = !demo.a; renderDemo(); });
+    $("ttB").addEventListener("click", function () { demo.b = !demo.b; renderDemo(); });
+
+    /* ================= Labor ================= */
+    var PRESETS = [
+      { name: "einfach", py: "x > 5", c: "x > 5" },
+      { name: "bereich", py: "x >= 1 and x <= 10", c: "x >= 1 && x <= 10" },
+      { name: "gerade?", py: "x % 2 == 0 or y % 2 == 0", c: "x % 2 == 0 || y % 2 == 0" },
+      { name: "nicht", py: "not (x > 5 or y > 5)", c: "!(x > 5 || y > 5)" },
+      { name: "vorrang", py: "x > 5 or y > 5 and z > 20", c: "x > 5 || y > 5 && z > 20" },
+      { name: "kurzschluss", py: "y != 0 and x % y == 0", c: "y != 0 && x % y == 0" },
+      { name: "kette", py: "1 < z < 10", c: "1 < z < 10" },
+      { name: "not-falle", py: "not x > 5", c: "!x > 5" }
+    ];
+    function buildPresets() {
+      var box = $("presets");
+      box.innerHTML = "";
+      PRESETS.forEach(function (p) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip";
+        b.title = p[L];
+        b.textContent = p.name;
+        b.addEventListener("click", function () { $("expr").value = p[L]; runLab(); });
+        box.appendChild(b);
+      });
+    }
+    function labEnv() {
+      var env = {};
+      LAB_VARS.forEach(function (v) {
+        var n = parseInt($("v" + v).value, 10);
+        env[v] = isNaN(n) ? 0 : n;
+      });
+      return env;
+    }
+    function traceHtml(steps) {
+      return '<ol class="trace">' + steps.map(function (s, i) {
+        var last = i === steps.length - 1;
+        return '<li class="' + (last ? "final" : "") + '"><span class="nr">' + (i === 0 ? "▸" : i + ".") + '</span><span class="ex">' + s.html + "</span>" +
+          (s.note ? '<span class="note">' + s.note + "</span>" : "") + "</li>";
+      }).join("") + "</ol>";
+    }
+    function runLab() {
+      var out = $("labOut");
+      var src = $("expr").value;
+      var env = labEnv();
+      var tree;
+      try { tree = E.parse(src, L, LAB_VARS); }
+      catch (e) {
+        if (!(e instanceof E.EngineError)) throw e;
+        out.innerHTML = '<p class="lab-msg"><b>Syntax:</b> ' + E.esc(e.message) + "</p>";
+        $("expr").setAttribute("aria-invalid", "true");
+        return;
+      }
+      $("expr").removeAttribute("aria-invalid");
+      try {
+        var tr = E.trace(tree, env, L);
+        var v = tr.value;
+        var isBool = L === "py" ? typeof v === "boolean" : true;
+        var sum = '<p class="muted" style="margin:10px 0 0">Ergebnis: <b class="tv ' + (E.truthy(v, L) ? "t" : "f") + '">' + E.esc(E.fmt(v, L)) + "</b>" +
+          (isBool ? " → die Bedingung ist <b>" + (E.truthy(v, L) ? "wahr" : "falsch") + "</b>." : " (kein reiner Wahrheitswert – in einem <code>if</code> würde er als " + (E.truthy(v, L) ? "wahr" : "falsch") + " gelten).") + "</p>";
+        out.innerHTML = traceHtml(tr.steps) + sum;
+      } catch (e) {
+        if (!(e instanceof E.EngineError)) throw e;
+        out.innerHTML = '<p class="lab-msg"><b>Laufzeitfehler:</b> ' + E.esc(e.message) + "</p>";
+      }
+    }
+    $("expr").addEventListener("input", runLab);
+    LAB_VARS.forEach(function (v) { $("v" + v).addEventListener("input", runLab); });
+
+    /* ================= Üben ================= */
+    var level = parseInt(load("op-level"), 10) || 1;
+    var kind = load("op-kind") || "mix";
+    var task = null;
+    var lastTable = null, recentTraps = [];
+    var stats = { right: 0, total: 0, streak: 0, best: 0, hist: [] };
+
+    function pressChips(boxId, attr, val) {
+      $(boxId).querySelectorAll(".chip").forEach(function (b) {
+        b.setAttribute("aria-pressed", b.getAttribute(attr) === String(val) ? "true" : "false");
+      });
+    }
+    $("lvlChips").addEventListener("click", function (e) {
+      var b = e.target.closest(".chip"); if (!b) return;
+      level = parseInt(b.getAttribute("data-lvl"), 10); store("op-level", level);
+      pressChips("lvlChips", "data-lvl", level); newTask();
+    });
+    $("kindChips").addEventListener("click", function (e) {
+      var b = e.target.closest(".chip"); if (!b) return;
+      kind = b.getAttribute("data-kind"); store("op-kind", kind);
+      pressChips("kindChips", "data-kind", kind); newTask();
+    });
+
+    function newTask() {
+      var k = kind === "mix" ? ["eval", "eval", "table", "form", "form", "trap"][Math.floor(Math.random() * 6)] : kind;
+      if (k === "eval") task = E.genEval(level);
+      else if (k === "table") { task = E.genTable(level, lastTable); lastTable = task.ast; task.picks = task.rows.map(function () { return null; }); }
+      else if (k === "form") task = E.genForm(level);
+      else {
+        task = E.genTrap(level, L, recentTraps);
+        recentTraps.push(task.item); if (recentTraps.length > 4) recentTraps.shift();
+      }
+      task.done = false; task.counted = false; task.revealed = false; task.chosen = null;
+      renderTask();
+    }
+
+    function record(ok) {
+      if (task.counted) return;
+      task.counted = true;
+      stats.total++;
+      if (ok) { stats.right++; stats.streak++; stats.best = Math.max(stats.best, stats.streak); }
+      else stats.streak = 0;
+      stats.hist.push(ok); if (stats.hist.length > 30) stats.hist.shift();
+      renderStats();
+    }
+    function renderStats() {
+      $("stRight").textContent = stats.right;
+      $("stTotal").textContent = stats.total;
+      $("stStreak").textContent = stats.streak;
+      $("stBest").textContent = stats.best;
+      $("history").innerHTML = stats.hist.map(function (o) { return '<i class="' + (o ? "ok" : "") + '"></i>'; }).join("");
+    }
+    $("resetStats").addEventListener("click", function () { stats = { right: 0, total: 0, streak: 0, best: 0, hist: [] }; renderStats(); });
+
+    function envLine(env, dom) {
+      return '<div class="task-env">' + Object.keys(env).map(function (k) {
+        var v = env[k];
+        if (dom && dom[k] === "bool") v = L === "py" ? !!v : (v ? 1 : 0);
+        return "<span>" + k + " = <b>" + E.esc(E.fmt(v, L)) + "</b></span>";
+      }).join("") + "</div>";
+    }
+    function langEnv(env, dom) {
+      var e = {};
+      Object.keys(env).forEach(function (k) { e[k] = dom && dom[k] === "bool" && L === "py" ? !!env[k] : env[k]; });
+      return e;
+    }
+    function setFeedback(cls, title, body) {
+      var fb = $("feedback");
+      fb.className = "feedback " + cls;
+      fb.innerHTML = '<span class="fb-title">' + title + "</span>" + (body || "");
+      fb.hidden = false;
+    }
+    function shake(el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+
+    var LABEL = { eval: "auswerten", table: "wahrheitstabelle", form: "bedingung finden", trap: "stolperfalle" };
+    var LVLNAME = { 1: "leicht", 2: "mittel", 3: "schwer" };
+
+    function renderTask() {
+      if (!task) return;
+      $("taskLabel").textContent = LABEL[task.kind] + " · " + LVLNAME[task.level];
+      $("feedback").hidden = true;
+      var body = $("taskBody");
+      var f = { eval: renderEval, table: renderTable, form: renderForm, trap: renderTrap }[task.kind];
+      f(body);
+      $("solveBtn").disabled = task.done;
+    }
+
+    /* ---------- auswerten ---------- */
+    function renderEval(body) {
+      body.innerHTML = '<p class="task-q">Ist die Bedingung wahr oder falsch? Was ergibt der Ausdruck?</p>' + envLine(task.env) +
+        '<div class="task-expr">' + codeOf(task.ast) + "</div>" +
+        '<div class="answers" id="ans">' +
+        '<button class="opt big" type="button" data-a="1">' + tvText(true) + (L === "c" ? " <span class=\"key\">wahr</span>" : "") + "</button>" +
+        '<button class="opt big" type="button" data-a="0">' + tvText(false) + (L === "c" ? " <span class=\"key\">falsch</span>" : "") + "</button></div>";
+      var btns = body.querySelectorAll(".opt");
+      btns.forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (task.done) return;
+          task.chosen = b.getAttribute("data-a") === "1";
+          task.done = true;
+          record(task.chosen === task.answer);
+          renderTask();
+        });
+      });
+      if (task.done) {
+        btns.forEach(function (b) {
+          var v = b.getAttribute("data-a") === "1";
+          b.disabled = true;
+          if (v === task.answer) b.classList.add("is-ok");
+          else if (v === task.chosen) b.classList.add("is-bad");
+          else b.classList.add("dim");
+        });
+        var tr = E.trace(task.ast, langEnv(task.env), L);
+        var ok = task.chosen === task.answer;
+        var details = '<details' + (ok ? "" : " open") + "><summary>Lösungsweg Schritt für Schritt</summary>" + traceHtml(tr.steps) + "</details>";
+        if (task.revealed) setFeedback("sol", "Lösung: " + tvText(task.answer), details);
+        else if (ok) setFeedback("ok", "✓ Richtig!", details);
+        else { setFeedback("bad", "✗ Leider falsch – richtig ist " + tvText(task.answer) + ".", details); shake($("ans")); }
+      }
+    }
+
+    /* ---------- Wahrheitstabelle ---------- */
+    function renderTable(body) {
+      var head = task.vars.map(function (v) { return "<th>" + v + "</th>"; }).join("") + '<th class="cur">' + codeOf(task.ast) + "</th>";
+      var rows = task.rows.map(function (bits, i) {
+        var cells = bits.map(function (b) { return "<td>" + tvSpan(!!b) + "</td>"; }).join("");
+        var p = task.picks[i];
+        var txt = p === null ? "?" : tvText(p);
+        return "<tr>" + cells + '<td class="res"><button class="cellbtn' + (p === null ? "" : " set") + '" type="button" data-i="' + i + '" aria-label="Ergebnis Zeile ' + (i + 1) + '">' + txt + "</button></td></tr>";
+      }).join("");
+      body.innerHTML = '<p class="task-q">Fülle die Wahrheitstabelle aus. Klicke in die letzte Spalte, um zwischen ' + tvText(true) + " und " + tvText(false) + " zu wechseln.</p>" +
+        '<div class="task-expr">' + codeOf(task.ast) + "</div>" +
+        '<div class="table-wrap"><table class="op-table tt-task"><thead><tr>' + head + "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
+        '<div class="row"><button class="btn" type="button" id="ttCheck">prüfen</button></div>';
+      var solution = task.rows.map(function (bits) { return E.truthy(E.ev(task.ast, E.envFromBits(task.vars, bits, L), L), L); });
+      body.querySelectorAll(".cellbtn").forEach(function (b) {
+        var i = parseInt(b.getAttribute("data-i"), 10);
+        if (task.done) {
+          b.disabled = true;
+          b.classList.add(task.picks[i] === solution[i] ? "is-ok" : "is-bad");
+          if (task.picks[i] !== solution[i]) b.textContent = tvText(solution[i]);
+          return;
+        }
+        b.addEventListener("click", function () {
+          var p = task.picks[i];
+          task.picks[i] = p === null ? true : p === true ? false : true;
+          b.textContent = tvText(task.picks[i]);
+          b.className = "cellbtn set";
+        });
+      });
+      var check = $("ttCheck");
+      check.disabled = task.done;
+      check.addEventListener("click", function () {
+        if (task.picks.some(function (p) { return p === null; })) {
+          setFeedback("bad", "Noch nicht fertig", "<p>Fülle zuerst alle Zeilen aus.</p>");
+          return;
+        }
+        var wrong = 0;
+        body.querySelectorAll(".cellbtn").forEach(function (b) {
+          var i = parseInt(b.getAttribute("data-i"), 10);
+          var ok = task.picks[i] === solution[i];
+          if (!ok) wrong++;
+          b.classList.remove("is-ok", "is-bad");
+          b.classList.add(ok ? "is-ok" : "is-bad");
+        });
+        record(wrong === 0);
+        if (wrong === 0) { task.done = true; renderTask(); }
+        else setFeedback("bad", "✗ " + wrong + (wrong === 1 ? " Zeile ist" : " Zeilen sind") + " falsch", "<p>Die roten Felder stimmen noch nicht. Korrigiere sie und prüfe noch einmal. Tipp: Werte zuerst die Klammern und " + (L === "py" ? "<code>not</code>" : "<code>!</code>") + " aus.</p>");
+      });
+      if (task.done) {
+        var note = "<p>Zeile für Zeile: Setze die Werte ein und werte von innen nach außen aus. Im Labor oben kannst du jede Zeile einzeln nachrechnen.</p>";
+        if (task.revealed) setFeedback("sol", "Lösung eingetragen", note);
+        else setFeedback("ok", "✓ Alles richtig!", "");
+      }
+    }
+
+    /* ---------- Bedingung finden ---------- */
+    function counterExample(wrongAst) {
+      var list = E._envs(task.dom);
+      for (var i = 0; i < list.length; i++) {
+        var env = langEnv(list[i], task.dom);
+        var a = E.truthy(E.ev(task.right, env, L), L), b = E.truthy(E.ev(wrongAst, env, L), L);
+        if (a !== b) return { env: list[i], right: a, wrong: b };
+      }
+      return null;
+    }
+    function renderForm(body) {
+      var keys = "ABCD";
+      body.innerHTML = '<p class="task-q">Welche Bedingung passt genau zu dieser Beschreibung?</p>' +
+        '<div class="task-expr" style="font-family:var(--font-sans);font-weight:500;font-size:1.1rem">' + task.text + "</div>" +
+        '<div class="answers" id="ans" style="grid-template-columns:1fr">' + task.opts.map(function (o, i) {
+          return '<button class="opt code-opt" type="button" data-i="' + i + '"><span class="key">' + keys[i] + "</span><span>" + codeOf(o) + "</span></button>";
+        }).join("") + "</div>";
+      var btns = body.querySelectorAll(".opt");
+      btns.forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (task.done) return;
+          task.chosen = parseInt(b.getAttribute("data-i"), 10);
+          task.done = true;
+          record(task.chosen === task.answer);
+          renderTask();
+        });
+      });
+      if (task.done) {
+        btns.forEach(function (b, i) {
+          b.disabled = true;
+          if (i === task.answer) b.classList.add("is-ok");
+          else if (i === task.chosen) b.classList.add("is-bad");
+          else b.classList.add("dim");
+        });
+        var right = "<p>Richtig ist <code>" + codeOf(task.right) + "</code>.</p>";
+        if (task.revealed) setFeedback("sol", "Lösung: " + keys[task.answer], right);
+        else if (task.chosen === task.answer) setFeedback("ok", "✓ Richtig!", "");
+        else {
+          var ce = counterExample(task.opts[task.chosen]);
+          var why = ce ? "<p>Gegenbeispiel: " + envLine(ce.env, task.dom).replace('class="task-env"', 'class="task-env" style="display:inline-flex"') +
+            " → deine Bedingung ergibt " + tvSpan(ce.wrong) + ", laut Beschreibung müsste aber " + tvSpan(ce.right) + " herauskommen.</p>" : "";
+          setFeedback("bad", "✗ Nicht ganz", why + right);
+          shake($("ans"));
+        }
+      }
+    }
+
+    /* ---------- Stolperfallen ---------- */
+    function renderTrap(body) {
+      var it = task.item, keys = "ABCD";
+      var isCode = it.opts.every(function (o) { return /[=<>!&|%(]|^\d+$|^(True|False|true)$/.test(o) && o.length < 45 && !/ – | weil | wird /.test(o); });
+      body.innerHTML = '<p class="task-q">' + it.q + "</p>" +
+        (it.code ? '<pre class="task-code"><code>' + E.esc(it.code) + "</code></pre>" : "") +
+        '<div class="answers" id="ans" style="grid-template-columns:1fr">' + task.order.map(function (oi, i) {
+          var txt = E.esc(it.opts[oi]);
+          return '<button class="opt' + (isCode ? " code-opt" : "") + '" type="button" data-i="' + i + '"><span class="key">' + keys[i] + "</span><span>" + txt + "</span></button>";
+        }).join("") + "</div>";
+      var btns = body.querySelectorAll(".opt");
+      btns.forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (task.done) return;
+          task.chosen = parseInt(b.getAttribute("data-i"), 10);
+          task.done = true;
+          record(task.chosen === task.answer);
+          renderTask();
+        });
+      });
+      if (task.done) {
+        btns.forEach(function (b, i) {
+          b.disabled = true;
+          if (i === task.answer) b.classList.add("is-ok");
+          else if (i === task.chosen) b.classList.add("is-bad");
+          else b.classList.add("dim");
+        });
+        var ex = "<p>" + it.ex + "</p>";
+        if (task.revealed) setFeedback("sol", "Lösung: " + keys[task.answer], ex);
+        else if (task.chosen === task.answer) setFeedback("ok", "✓ Richtig!", ex);
+        else { setFeedback("bad", "✗ Leider falsch – richtig ist " + keys[task.answer] + ".", ex); shake($("ans")); }
+      }
+    }
+
+    $("solveBtn").addEventListener("click", function () {
+      if (!task || task.done) return;
+      record(false);
+      task.revealed = true;
+      task.done = true;
+      if (task.kind === "table") {
+        task.picks = task.rows.map(function (bits) { return E.truthy(E.ev(task.ast, E.envFromBits(task.vars, bits, L), L), L); });
+      }
+      renderTask();
+    });
+    $("newBtn").addEventListener("click", newTask);
+
+    /* ================= Start ================= */
+    $("expr").value = PRESETS[1][L];
+    setLang(L, true);
+    runLab();
+    pressChips("lvlChips", "data-lvl", level);
+    pressChips("kindChips", "data-kind", kind);
+    renderStats();
+    newTask();
+  })();
+  </script>
+</body>
+</html>
